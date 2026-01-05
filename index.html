@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#1a1a1a">
+    <title>Keepsake v4 - Create Photo Carousels</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow: hidden;
+            background: #f5f5f5;
+            touch-action: pan-x pan-y;
+        }
+
+        #app {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .screen.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Welcome Screen */
+        .welcome-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f5f5f5;
+        }
+
+        .welcome-content {
+            text-align: center;
+            padding: 20px;
+            max-width: 500px;
+        }
+
+        .logo-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 35px;
+        }
+
+        .logo-icon {
+            width: clamp(40px, 10vw, 60px);
+            height: clamp(40px, 10vw, 60px);
+            margin-bottom: 15px;
+        }
+
+        .logo {
+            font-size: clamp(48px, 12vw, 72px);
+            font-weight: 700;
+            color: #1a1a1a;
+            font-family: 'Courier New', Courier, monospace;
+            text-transform: lowercase;
+        }
+
+        .tagline {
+            font-size: clamp(16px, 4vw, 20px);
+            color: #666;
+            margin-bottom: 60px;
+            line-height: 1.6;
+        }
+
+        .btn-primary {
+            padding: 20px 60px;
+            background: #1a1a1a;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: transform 0.2s;
+            touch-action: manipulation;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        /* Project Naming Screen */
+        .project-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .project-content {
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .project-title {
+            font-size: clamp(28px, 6vw, 36px);
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 35px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .project-logo-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 35px;
+        }
+
+        .project-logo-icon {
+            width: clamp(24px, 6vw, 30px);
+            height: clamp(24px, 6vw, 30px);
+            margin-bottom: 10px;
+        }
+
+        .project-logo {
+            font-size: clamp(28px, 6vw, 36px);
+            font-weight: 700;
+            color: #1a1a1a;
+            font-family: 'Courier New', Courier, monospace;
+            text-transform: lowercase;
+        }
+
+        .project-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+        }
+
+        .form-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .form-label.required::after {
+            content: ' *';
+            color: #1a1a1a;
+        }
+
+        .form-input {
+            padding: 14px 16px;
+            font-size: 16px;
+            font-family: 'Poppins', sans-serif;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #1a1a1a;
+        }
+
+        .form-input::placeholder {
+            color: #999;
+        }
+
+        .form-textarea {
+            padding: 14px 16px;
+            font-size: 16px;
+            font-family: 'Poppins', sans-serif;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            resize: vertical;
+            min-height: 100px;
+            transition: border-color 0.2s;
+        }
+
+        .form-textarea:focus {
+            outline: none;
+            border-color: #1a1a1a;
+        }
+
+        .form-textarea::placeholder {
+            color: #999;
+        }
+
+        .project-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .project-actions .btn-primary {
+            width: 100%;
+            padding: 14px 20px;
+            font-size: 16px;
+            border-radius: 8px;
+        }
+
+        .project-actions .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        /* Aspect Ratio Screen */
+        .aspect-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .aspect-content {
+            text-align: center;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .aspect-title {
+            font-size: clamp(28px, 6vw, 36px);
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 35px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .aspect-subtitle {
+            font-size: clamp(14px, 3vw, 16px);
+            color: #666;
+            margin-bottom: 40px;
+        }
+
+        .aspect-options {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        .aspect-option {
+            cursor: pointer;
+            text-align: center;
+            transition: transform 0.2s;
+            touch-action: manipulation;
+        }
+
+        .aspect-option:active {
+            transform: scale(0.95);
+        }
+
+        .aspect-box {
+            background: white;
+            border: 3px solid #1a1a1a;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+        }
+
+        .aspect-box-1-1 {
+            width: clamp(140px, 35vw, 180px);
+            height: clamp(140px, 35vw, 180px);
+        }
+
+        .aspect-box-4-5 {
+            width: clamp(140px, 35vw, 180px);
+            height: clamp(175px, 44vw, 225px);
+        }
+
+        .aspect-box-9-16 {
+            width: clamp(140px, 35vw, 180px);
+            height: clamp(249px, 62vw, 320px);
+        }
+
+        .aspect-label {
+            font-size: clamp(18px, 4vw, 20px);
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .aspect-desc {
+            font-size: clamp(12px, 3vw, 14px);
+            color: #666;
+        }
+
+        .aspect-meta {
+            font-size: clamp(10px, 2.5vw, 12px);
+            color: #999;
+        }
+
+        .btn-back {
+            padding: 12px 24px;
+            background: transparent;
+            color: #666;
+            border: 2px solid #e0e0e0;
+            borderRadius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            touch-action: manipulation;
+        }
+
+        /* Image Selection Screen */
+        .select-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f5f5f5;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .select-content {
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+            padding: 20px 0;
+            min-height: 70vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .select-title {
+            font-size: clamp(28px, 6vw, 36px);
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 35px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .select-subtitle {
+            font-size: clamp(14px, 3vw, 16px);
+            color: #666;
+            margin-bottom: 40px;
+        }
+
+        .upload-area {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto 30px;
+            padding: 60px 40px;
+            background: white;
+            border: 3px dashed #ccc;
+            border-radius: 12px;
+            cursor: pointer;
+            color: #666;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            min-height: 200px;
+        }
+
+        .upload-area.hidden {
+            display: none !important;
+        }
+
+        .upload-area:active {
+            border-color: #1a1a1a;
+            color: #1a1a1a;
+        }
+
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 20px;
+            opacity: 0.5;
+        }
+
+        .image-grid-wrapper {
+            margin: 0 auto 30px;
+            width: 100%;
+            max-width: 400px;
+            height: 288px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background: white;
+            border-radius: 12px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .image-grid-wrapper::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .image-grid-wrapper::-webkit-scrollbar-track {
+            background: #f5f5f5;
+            border-radius: 4px;
+        }
+
+        .image-grid-wrapper::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+
+        .image-grid-wrapper::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-auto-rows: 100px;
+            align-content: start;
+            gap: 10px;
+            padding: 20px;
+            width: 100%;
+        }
+
+        .image-thumb {
+            width: 100%;
+            height: 100px;
+            background: #f5f5f5;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .image-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .image-preview-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .image-preview-modal.active {
+            display: flex;
+        }
+
+        .image-preview-modal img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        .preview-close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: white;
+            color: #1a1a1a;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            touch-action: manipulation;
+        }
+
+        .preview-close-btn:active {
+            transform: scale(0.95);
+        }
+
+        .preview-nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: white;
+            color: #1a1a1a;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            touch-action: manipulation;
+            transition: opacity 0.2s;
+        }
+
+        .preview-nav-btn:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+
+        .preview-nav-btn.hidden {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .preview-nav-left {
+            left: 20px;
+        }
+
+        .preview-nav-right {
+            right: 20px;
+        }
+
+        .image-remove-btn {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #1a1a1a;
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            touch-action: manipulation;
+            transition: all 0.2s;
+            z-index: 10;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .image-remove-btn:hover {
+            background: #333;
+            transform: scale(1.1);
+        }
+
+        .image-remove-btn:active {
+            transform: scale(0.95);
+        }
+
+        .select-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 0 auto;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .select-actions .btn-secondary {
+            padding: 10px 20px;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        .select-actions .btn-primary {
+            padding: 14px 20px;
+            font-size: 16px;
+            width: 100%;
+            border-radius: 8px;
+        }
+
+        .btn-secondary {
+            padding: 12px 24px;
+            background: white;
+            border: 2px solid #1a1a1a;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            touch-action: manipulation;
+            width: 100%;
+        }
+
+        /* Canvas Screen */
+        .canvas-screen {
+            display: flex;
+            flex-direction: column;
+            background: #f5f5f5;
+            height: 100vh;
+        }
+
+        .canvas-header {
+            background: white;
+            border-bottom: 2px solid #e0e0e0;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .canvas-info h2 {
+            font-size: clamp(16px, 4vw, 20px);
+            font-weight: 600;
+            color: #1a1a1a;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .canvas-info p {
+            font-size: clamp(12px, 3vw, 14px);
+            color: #666;
+        }
+
+        .canvas-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            padding: 10px 16px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            color: #666;
+            touch-action: manipulation;
+        }
+
+        .btn-export {
+            padding: 10px 20px;
+            background: #1a1a1a;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            touch-action: manipulation;
+        }
+
+        .canvas-workspace {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            overflow-y: auto;
+            align-items: center;
+        }
+
+        .canvas-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 900px;
+            flex-shrink: 0;
+        }
+
+        .canvas-scroll {
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            position: relative;
+        }
+
+        .canvas-scroll::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .canvas-scroll::-webkit-scrollbar-track {
+            background: #f5f5f5;
+        }
+
+        .canvas-scroll::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+
+        .btn-add-slide {
+            position: absolute;
+            left: 510px; /* Initial position: 500px canvas width + 10px margin */
+            top: 50%;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #1a1a1a;
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            touch-action: manipulation;
+            transition: transform 0.2s;
+            z-index: 10;
+        }
+
+        .btn-add-slide:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+
+        .canvas {
+            position: relative;
+            background: white;
+            border: 2px solid #1a1a1a;
+            min-height: 300px;
+        }
+
+        .splice-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #e0e0e0;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .canvas-image {
+            position: absolute;
+            cursor: move;
+            touch-action: none;
+            user-select: none;
+        }
+
+        .canvas-image-wrapper {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .canvas-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .canvas-image.selected {
+            border: 2px solid #1a1a1a;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .canvas-image.locked {
+            cursor: not-allowed;
+        }
+
+        /* Image Top Toolbar */
+        .image-top-toolbar {
+            position: absolute;
+            top: -55px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 6px 8px;
+            display: flex;
+            gap: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            z-index: 1000;
+            user-select: none;
+            pointer-events: auto;
+        }
+
+        .toolbar-btn-small {
+            width: 32px;
+            height: 32px;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: background 0.2s;
+            padding: 0;
+        }
+
+        .toolbar-btn-small:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .toolbar-btn-small:active {
+            transform: scale(0.95);
+        }
+
+        .toolbar-btn-small svg {
+            width: 18px;
+            height: 18px;
+            stroke: white;
+            fill: none;
+        }
+
+        /* Dropdown Menu */
+        .dropdown-menu {
+            position: absolute;
+            top: 40px;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 8px 0;
+            min-width: 150px;
+            z-index: 2000;
+            display: none;
+        }
+
+        .dropdown-menu.active {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #1a1a1a;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dropdown-item:hover {
+            background: #f5f5f5;
+        }
+
+        .dropdown-item:active {
+            background: #e0e0e0;
+        }
+
+        /* Resize Handles */
+        .resize-handle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border: 2px solid #1a1a1a;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            pointer-events: auto;
+        }
+
+        .resize-handle-nw {
+            top: -6px;
+            left: -6px;
+            cursor: nwse-resize;
+        }
+
+        .resize-handle-ne {
+            top: -6px;
+            right: -6px;
+            cursor: nesw-resize;
+        }
+
+        .resize-handle-sw {
+            bottom: -6px;
+            left: -6px;
+            cursor: nesw-resize;
+        }
+
+        .resize-handle-se {
+            bottom: -6px;
+            right: -6px;
+            cursor: nwse-resize;
+        }
+
+        /* Crop Mode Overlay */
+        .crop-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .crop-area {
+            position: absolute;
+            border: 2px solid #4a90e2;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .crop-handle {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border: 2px solid #4a90e2;
+            border-radius: 50%;
+            z-index: 15;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        .crop-handle-nw {
+            top: -8px;
+            left: -8px;
+            cursor: nwse-resize;
+        }
+
+        .crop-handle-ne {
+            top: -8px;
+            right: -8px;
+            cursor: nesw-resize;
+        }
+
+        .crop-handle-sw {
+            bottom: -8px;
+            left: -8px;
+            cursor: nesw-resize;
+        }
+
+        .crop-handle-se {
+            bottom: -8px;
+            right: -8px;
+            cursor: nwse-resize;
+        }
+
+        .crop-handle-n {
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: ns-resize;
+        }
+
+        .crop-handle-s {
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: ns-resize;
+        }
+
+        .crop-handle-w {
+            left: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: ew-resize;
+        }
+
+        .crop-handle-e {
+            right: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: ew-resize;
+        }
+
+        .canvas-text {
+            position: absolute;
+            cursor: move;
+            touch-action: none;
+            font-family: 'Poppins', sans-serif;
+            font-size: 18px;
+            color: #1a1a1a;
+            padding: 8px 12px;
+            border: 2px dashed transparent;
+            border-radius: 4px;
+            min-width: 100px;
+            max-width: 400px;
+            outline: none;
+            background: transparent;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        .canvas-text:focus {
+            border-color: #1a1a1a;
+            background: rgba(255, 255, 255, 0.9);
+            cursor: text;
+        }
+
+        .canvas-text.selected {
+            border-color: #1a1a1a;
+        }
+
+        .canvas-text:hover {
+            cursor: move;
+        }
+
+        .text-edit-controls {
+            position: absolute;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            white-space: nowrap;
+            z-index: 1000;
+        }
+
+        .text-control-select {
+            padding: 6px 8px;
+            font-size: 12px;
+            font-family: 'Poppins', sans-serif;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            min-width: 90px;
+        }
+
+        .text-control-select:focus {
+            outline: none;
+            border-color: #1a1a1a;
+        }
+
+        .text-control-size {
+            width: 50px;
+            padding: 6px 8px;
+            font-size: 12px;
+            font-family: 'Poppins', sans-serif;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .text-control-size:focus {
+            outline: none;
+            border-color: #1a1a1a;
+        }
+
+        .text-control-color {
+            width: 35px;
+            height: 28px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 2px;
+        }
+
+        .text-control-color::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .text-control-color::-webkit-color-swatch {
+            border: none;
+            border-radius: 2px;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: -12px;
+            right: -8px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #1a1a1a;
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            font-size: 14px;
+            font-weight: bold;
+            touch-action: manipulation;
+            line-height: 1;
+            user-select: none;
+            pointer-events: auto;
+        }
+
+        .resize-handle {
+            position: absolute;
+            bottom: -6px;
+            right: -6px;
+            width: 20px;
+            height: 20px;
+            background: #1a1a1a;
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: nwse-resize;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .layer-controls {
+            position: absolute;
+            bottom: -140px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 4px 8px;
+            display: flex;
+            gap: 8px;
+            white-space: nowrap;
+            font-size: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            user-select: none;
+            pointer-events: auto;
+        }
+
+        .text-style-toolbar {
+            position: absolute;
+            bottom: -90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px 12px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            white-space: nowrap;
+            font-size: 12px;
+            z-index: 1000;
+            user-select: none;
+            pointer-events: auto;
+        }
+
+        .text-style-select {
+            padding: 4px 6px;
+            font-size: 11px;
+            font-family: 'Poppins', sans-serif;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            min-width: 80px;
+            user-select: none;
+        }
+
+        .text-style-select:focus {
+            outline: none;
+            border-color: #1a1a1a;
+        }
+
+        .text-style-size {
+            width: 45px;
+            padding: 4px 6px;
+            font-size: 11px;
+            font-family: 'Poppins', sans-serif;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            text-align: center;
+            user-select: none;
+        }
+
+        .text-style-size:focus {
+            outline: none;
+            border-color: #1a1a1a;
+        }
+
+        .text-style-color {
+            width: 30px;
+            height: 24px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 2px;
+            user-select: none;
+        }
+
+        .text-style-color::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .text-style-color::-webkit-color-swatch {
+            border: none;
+            border-radius: 2px;
+        }
+
+        .layer-btn {
+            padding: 4px 8px;
+            background: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: 'Poppins', sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+            pointer-events: auto;
+        }
+
+        /* Unified Toolbar */
+        .unified-toolbar {
+            width: 100%;
+            max-width: 900px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .toolbar-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            border-bottom: 2px solid #e0e0e0;
+            flex-shrink: 0;
+        }
+
+        .toolbar-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 14px;
+            background: white;
+            border: none;
+            border-right: 2px solid #e0e0e0;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            color: #666;
+            height: 60px;
+            flex-shrink: 0;
+        }
+
+        .toolbar-btn:last-child {
+            border-right: none;
+        }
+
+        .toolbar-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .toolbar-btn:active {
+            transform: scale(0.98);
+        }
+
+        .toolbar-btn.active {
+            background: #1a1a1a;
+            color: white;
+        }
+
+        .toolbar-btn.active svg {
+            stroke: white;
+        }
+
+        .toolbar-btn svg {
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        /* Tool Panels */
+        .tool-panel {
+            display: none;
+            padding: 20px;
+        }
+
+        .tool-panel.active {
+            display: block;
+        }
+
+        .panel-header {
+            font-size: clamp(14px, 3.5vw, 16px);
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #1a1a1a;
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-content {
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 6px;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Text Controls */
+        .text-controls {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .btn-add-text {
+            padding: 14px 24px;
+            background: #1a1a1a;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            transition: transform 0.2s;
+            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-add-text:active {
+            transform: scale(0.98);
+        }
+
+        /* Text Style Controls Slider */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #1a1a1a;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #1a1a1a;
+            cursor: pointer;
+            border: none;
+        }
+
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 4px;
+        }
+
+        .library-section {
+            font-weight: 600;
+        }
+
+        .library-section {
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .library-header {
+            font-size: clamp(14px, 3.5vw, 16px);
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #1a1a1a;
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-add-images {
+            padding: 8px 16px;
+            background: white;
+            border: 2px solid #1a1a1a;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            color: #1a1a1a;
+            touch-action: manipulation;
+            transition: transform 0.2s;
+        }
+
+        .btn-add-images:active {
+            transform: scale(0.95);
+        }
+
+        .library-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 12px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .library-item {
+            aspect-ratio: 1;
+            background: #f5f5f5;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            touch-action: manipulation;
+        }
+
+        .library-item:active {
+            border-color: #1a1a1a;
+            transform: scale(0.95);
+        }
+
+        .library-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .library-hint {
+            font-size: 13px;
+            color: #666;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        svg {
+            display: inline-block;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Welcome Screen -->
+        <div class="screen welcome-screen active" id="welcomeScreen">
+            <div class="welcome-content">
+                <div class="logo-container">
+                    <svg class="logo-icon" viewBox="0 0 24 24" fill="#1a1a1a">
+                        <rect x="5" y="11" width="14" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#1a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                    </svg>
+                    <h1 class="logo">keepsake</h1>
+                </div>
+                <p class="tagline">Turn experiences into visual stories</p>
+                <button class="btn-primary" onclick="app.goToProject()">
+                    Create a Keepsake
+                </button>
+            </div>
+        </div>
+
+        <!-- Project Naming Screen -->
+        <div class="screen project-screen" id="projectScreen">
+            <div class="project-content">
+                <div class="project-logo-container">
+                    <svg class="project-logo-icon" viewBox="0 0 24 24" fill="#1a1a1a">
+                        <rect x="5" y="11" width="14" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#1a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                    </svg>
+                    <h2 class="project-logo">keepsake</h2>
+                </div>
+
+                <form class="project-form" onsubmit="return false;">
+                    <div class="form-group">
+                        <label class="form-label required" for="projectName">Title</label>
+                        <input
+                            type="text"
+                            id="projectName"
+                            class="form-input"
+                            placeholder=""
+                            oninput="app.updateProjectContinueButton()"
+                            maxlength="50"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="projectDescription">Description</label>
+                        <textarea
+                            id="projectDescription"
+                            class="form-textarea"
+                            placeholder="Add any notes about this project..."
+                            maxlength="200"
+                        ></textarea>
+                    </div>
+                </form>
+
+                <div class="project-actions">
+                    <button id="projectContinueBtn" class="btn-primary" onclick="app.saveProjectInfo()" disabled>
+                        Continue
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aspect Ratio Screen -->
+        <div class="screen aspect-screen" id="aspectScreen">
+            <div class="aspect-content">
+                <h2 class="aspect-title">Choose Your Format</h2>
+
+                <div class="aspect-options">
+                    <div class="aspect-option" onclick="app.selectAspectRatio('1:1')">
+                        <div class="aspect-box aspect-box-1-1"></div>
+                        <div class="aspect-label">1:1</div>
+                        <div class="aspect-desc">Square</div>
+                    </div>
+
+                    <div class="aspect-option" onclick="app.selectAspectRatio('4:5')">
+                        <div class="aspect-box aspect-box-4-5"></div>
+                        <div class="aspect-label">4:5</div>
+                        <div class="aspect-desc">Portrait</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Selection Screen -->
+        <div class="screen select-screen" id="selectScreen">
+            <div class="select-content">
+                <h2 class="select-title">Add Your Captures</h2>
+
+                <input type="file" id="fileInput" accept="image/*" multiple onchange="app.handleImageSelect(event)">
+
+                <div id="uploadArea" class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    <div style="font-size: 18px; margin-bottom: 10px;">Click to select photos</div>
+                    <div style="font-size: 14px; color: #999;">You can select multiple images</div>
+                </div>
+
+                <div id="imageGridWrapper" class="image-grid-wrapper" style="display: none;">
+                    <div id="imageGrid" class="image-grid"></div>
+                </div>
+
+                <div class="select-actions" id="selectActions" style="display: none;">
+                    <button class="btn-secondary" onclick="document.getElementById('fileInput').click()">
+                        Add More Photos
+                    </button>
+                    <button class="btn-primary" onclick="app.goToCanvas()">
+                        Continue to Canvas
+                    </button>
+                </div>
+
+                <button id="selectBackBtn" class="btn-back" onclick="app.goToAspectRatio()" style="margin-top: 20px; padding: 8px 12px; font-size: 14px;">Back</button>
+            </div>
+        </div>
+
+        <!-- Canvas Screen -->
+        <div class="screen canvas-screen" id="canvasScreen">
+            <div class="canvas-header">
+                <div class="canvas-info">
+                    <h2 id="canvasTitle">Keepsake Canvas</h2>
+                    <p id="canvasInfo">1:1 • 1 slide</p>
+                </div>
+                <div class="canvas-actions">
+                    <button class="btn-export" onclick="app.exportCarousel()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Export
+                    </button>
+                </div>
+            </div>
+
+            <div class="canvas-workspace">
+                <div class="canvas-container">
+                    <div class="canvas-scroll">
+                        <div class="canvas" id="canvas"></div>
+                        <button class="btn-add-slide" onclick="app.addSlide()" title="Add Slide">+</button>
+                    </div>
+                </div>
+
+                <!-- Unified Toolbar -->
+                <div class="unified-toolbar">
+                    <div class="toolbar-buttons">
+                        <button class="toolbar-btn active" data-tool="images" onclick="app.openToolPanel('images')" title="Images">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                <polyline points="21 15 16 10 5 21"></polyline>
+                            </svg>
+                        </button>
+
+                        <button class="toolbar-btn" data-tool="text" onclick="app.openToolPanel('text')" title="Text">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="4 7 4 4 20 4 20 7"></polyline>
+                                <line x1="9" y1="20" x2="15" y2="20"></line>
+                                <line x1="12" y1="4" x2="12" y2="20"></line>
+                            </svg>
+                        </button>
+
+                        <button class="toolbar-btn" data-tool="draw" onclick="app.openToolPanel('draw')" title="Draw">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                                <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                                <path d="M2 2l7.586 7.586"></path>
+                                <circle cx="11" cy="11" r="2"></circle>
+                            </svg>
+                        </button>
+
+                        <button class="toolbar-btn" data-tool="shapes" onclick="app.openToolPanel('shapes')" title="Shapes">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Tool Panels -->
+                    <div class="tool-panel active" id="panel-images">
+                        <div class="panel-header">
+                            <span>Image Library (<span id="libraryCount">0</span>)</span>
+                            <button class="btn-add-images" onclick="document.getElementById('canvasFileInput').click()">+ Add Images</button>
+                        </div>
+                        <input type="file" id="canvasFileInput" accept="image/*" multiple onchange="app.addMoreImagesToLibrary(event)" style="display: none;">
+                        <div class="library-grid" id="libraryGrid"></div>
+                    </div>
+
+                    <div class="tool-panel" id="panel-text">
+                        <div class="panel-header">Add Text</div>
+                        <div class="text-controls">
+                            <button class="btn-add-text" onclick="app.addTextToCanvas()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                                    <polyline points="4 7 4 4 20 4 20 7"></polyline>
+                                    <line x1="9" y1="20" x2="15" y2="20"></line>
+                                    <line x1="12" y1="4" x2="12" y2="20"></line>
+                                </svg>
+                                Add Text to Canvas
+                            </button>
+                            <p style="color: #666; font-size: 13px; margin-top: 15px; text-align: center;">
+                                Click to add text • Drag to move • Click to edit
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="tool-panel" id="panel-draw">
+                        <div class="panel-header">Drawing Tool</div>
+                        <div class="panel-content">
+                            <p style="color: #666; font-size: 14px;">Drawing tool coming soon...</p>
+                        </div>
+                    </div>
+
+                    <div class="tool-panel" id="panel-shapes">
+                        <div class="panel-header">Add Shapes</div>
+                        <div class="panel-content">
+                            <p style="color: #666; font-size: 14px;">Shapes tool coming soon...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Preview Modal -->
+        <div id="imagePreviewModal" class="image-preview-modal" onclick="app.closeImagePreview()">
+            <button class="preview-close-btn" onclick="app.closeImagePreview()">×</button>
+            <button id="previewNavLeft" class="preview-nav-btn preview-nav-left" onclick="app.navigatePreview(-1, event)">‹</button>
+            <img id="previewImage" src="" alt="Preview">
+            <button id="previewNavRight" class="preview-nav-btn preview-nav-right" onclick="app.navigatePreview(1, event)">›</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
