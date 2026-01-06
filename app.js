@@ -1,5 +1,6 @@
 const app = {
     currentScreen: 'welcome',
+    contentType: null,  // 'carousel' or 'story'
     aspectRatio: null,
     imageLibrary: [],
     canvasImages: [],
@@ -74,6 +75,24 @@ const app = {
         this.projectDescription = projectDescInput.value.trim();
 
         if (this.projectName) {
+            this.goToContentType();
+        }
+    },
+
+    goToContentType() {
+        this.goToScreen('contentType');
+    },
+
+    selectContentType(type) {
+        this.contentType = type;
+
+        if (type === 'story') {
+            // Story type: automatically set 9:16 and skip aspect ratio selection
+            this.aspectRatio = '9:16';
+            this.calculateCanvasDimensions();
+            this.goToScreen('select');
+        } else {
+            // Carousel type: go to aspect ratio selection
             this.goToAspectRatio();
         }
     },
