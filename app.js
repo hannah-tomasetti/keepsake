@@ -19,6 +19,17 @@ const app = {
     numSlides: 1,
     selectedTool: null,
 
+    // Drawing tool state
+    drawingCanvas: null,
+    drawingCtx: null,
+    isDrawing: false,
+    drawTool: 'pen', // 'pen', 'marker', 'highlighter', 'eraser'
+    drawColor: '#1a1a1a',
+    drawWeight: 12,
+    drawOpacity: 100,
+    lastX: 0,
+    lastY: 0,
+
     init() {
         this.setupEventListeners();
     },
@@ -246,7 +257,13 @@ const app = {
         canvas.style.width = totalWidth + 'px';
         canvas.style.height = this.canvasDimensions.height + 'px';
 
+        // Clear canvas but preserve the drawing canvas
+        const drawingCanvas = document.getElementById('drawingCanvas');
         canvas.innerHTML = '';
+        if (drawingCanvas) {
+            canvas.appendChild(drawingCanvas);
+        }
+
         for (let i = 1; i < this.numSlides; i++) {
             const line = document.createElement('div');
             line.className = 'splice-line';
@@ -269,6 +286,9 @@ const app = {
         this.updateLibraryGrid();
         document.getElementById('libraryCount').textContent = this.imageLibrary.length;
 
+        // Initialize drawing canvas
+        this.initDrawingCanvas();
+
         this.renderCanvasImages();
     },
 
@@ -279,6 +299,12 @@ const app = {
 
         // Update canvas width
         canvas.style.width = totalWidth + 'px';
+
+        // Update drawing canvas width
+        if (this.drawingCanvas) {
+            this.drawingCanvas.width = totalWidth;
+            this.drawingCanvas.style.width = totalWidth + 'px';
+        }
 
         // Add new splice line
         const line = document.createElement('div');
@@ -321,6 +347,9 @@ const app = {
         }
 
         this.selectedTool = toolName;
+
+        // Update drawing canvas state
+        this.updateDrawingCanvasState();
     },
 
     updateLibraryGrid() {
@@ -441,7 +470,7 @@ const app = {
     renderCanvasImages() {
         const canvas = document.getElementById('canvas');
 
-        // Remove all existing elements
+        // Remove all existing elements but preserve drawing canvas and splice lines
         canvas.querySelectorAll('.canvas-image').forEach(el => el.remove());
         canvas.querySelectorAll('.canvas-text').forEach(el => el.remove());
 
@@ -1283,6 +1312,172 @@ const app = {
     exportCarousel() {
         const numSlides = Math.max(1, Math.ceil(this.imageLibrary.length / 3));
         alert(`🎉 Ready to export ${numSlides} slide${numSlides > 1 ? 's' : ''}!\n\nIn the full version, this will download your carousel as high-resolution images (1080px) ready to post on Instagram or TikTok.`);
+    },
+
+    // ============ DRAWING TOOL FUNCTIONS ============
+
+    initDrawingCanvas() {
+        this.drawingCanvas = document.getElementById('drawingCanvas');
+        if (!this.drawingCanvas) return;
+
+        this.drawingCtx = this.drawingCanvas.getContext('2d');
+
+        // Set canvas size to match the main canvas
+        const totalWidth = this.canvasDimensions.width * this.numSlides;
+        this.drawingCanvas.width = totalWidth;
+        this.drawingCanvas.height = this.canvasDimensions.height;
+        this.drawingCanvas.style.width = totalWidth + 'px';
+        this.drawingCanvas.style.height = this.canvasDimensions.height + 'px';
+
+        // Setup drawing event listeners
+        this.setupDrawingListeners();
+    },
+
+    setupDrawingListeners() {
+        if (!this.drawingCanvas) return;
+
+        // Mouse events
+        this.drawingCanvas.addEventListener('mousedown', (e) => this.startDrawing(e));
+        this.drawingCanvas.addEventListener('mousemove', (e) => this.draw(e));
+        this.drawingCanvas.addEventListener('mouseup', () => this.stopDrawing());
+        this.drawingCanvas.addEventListener('mouseout', () => this.stopDrawing());
+
+        // Touch events
+        this.drawingCanvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousedown', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            this.drawingCanvas.dispatchEvent(mouseEvent);
+        }, { passive: false });
+
+        this.drawingCanvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            this.drawingCanvas.dispatchEvent(mouseEvent);
+        }, { passive: false });
+
+        this.drawingCanvas.addEventListener('touchend', () => {
+            this.stopDrawing();
+        });
+    },
+
+    selectDrawTool(tool) {
+        this.drawTool = tool;
+
+        // Update UI
+        document.querySelectorAll('.draw-tool-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-tool="${tool}"]`).classList.add('active');
+
+        // Enable/disable drawing canvas based on tool panel
+        this.updateDrawingCanvasState();
+    },
+
+    updateDrawingCanvasState() {
+        if (!this.drawingCanvas) return;
+
+        // Only enable drawing when the draw panel is active
+        const drawPanel = document.getElementById('panel-draw');
+        if (drawPanel && drawPanel.classList.contains('active')) {
+            this.drawingCanvas.classList.add('drawing-active');
+        } else {
+            this.drawingCanvas.classList.remove('drawing-active');
+        }
+    },
+
+    updateDrawColor(color) {
+        this.drawColor = color;
+        document.getElementById('drawColorPicker').value = color;
+    },
+
+    updateDrawWeight(weight) {
+        this.drawWeight = parseInt(weight);
+        document.getElementById('drawWeightValue').textContent = weight;
+    },
+
+    updateDrawTransparency(opacity) {
+        this.drawOpacity = parseInt(opacity);
+        document.getElementById('drawTransparencyValue').textContent = opacity;
+    },
+
+    getCanvasCoordinates(e) {
+        const rect = this.drawingCanvas.getBoundingClientRect();
+        const scaleX = this.drawingCanvas.width / rect.width;
+        const scaleY = this.drawingCanvas.height / rect.height;
+
+        return {
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
+        };
+    },
+
+    startDrawing(e) {
+        this.isDrawing = true;
+        const coords = this.getCanvasCoordinates(e);
+        this.lastX = coords.x;
+        this.lastY = coords.y;
+    },
+
+    draw(e) {
+        if (!this.isDrawing) return;
+
+        const coords = this.getCanvasCoordinates(e);
+        const ctx = this.drawingCtx;
+
+        ctx.beginPath();
+        ctx.moveTo(this.lastX, this.lastY);
+        ctx.lineTo(coords.x, coords.y);
+
+        // Set drawing properties based on tool
+        if (this.drawTool === 'eraser') {
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.lineWidth = this.drawWeight * 2; // Eraser is bigger
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+        } else {
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.strokeStyle = this.drawColor;
+            ctx.globalAlpha = this.drawOpacity / 100;
+            ctx.lineWidth = this.drawWeight;
+
+            // Different line styles for different tools
+            if (this.drawTool === 'pen') {
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+            } else if (this.drawTool === 'marker') {
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.lineWidth = this.drawWeight * 1.5; // Marker is thicker
+            } else if (this.drawTool === 'highlighter') {
+                ctx.lineCap = 'square';
+                ctx.lineJoin = 'miter';
+                ctx.lineWidth = this.drawWeight * 2; // Highlighter is widest
+                ctx.globalAlpha = 0.3; // Highlighter is more transparent
+            }
+        }
+
+        ctx.stroke();
+        ctx.globalAlpha = 1; // Reset alpha
+
+        this.lastX = coords.x;
+        this.lastY = coords.y;
+    },
+
+    stopDrawing() {
+        this.isDrawing = false;
+    },
+
+    clearDrawing() {
+        if (!this.drawingCtx) return;
+        this.drawingCtx.clearRect(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
     }
 };
 
