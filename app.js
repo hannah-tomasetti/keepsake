@@ -30,6 +30,11 @@ const app = {
     lastX: 0,
     lastY: 0,
 
+    // Undo/Redo history
+    history: [],
+    historyIndex: -1,
+    maxHistorySize: 50,
+
     init() {
         this.setupEventListeners();
     },
@@ -290,6 +295,9 @@ const app = {
         this.initDrawingCanvas();
 
         this.renderCanvasImages();
+
+        // Save initial state for undo/redo
+        this.saveState();
     },
 
     addSlide() {
@@ -315,6 +323,8 @@ const app = {
         // Reposition the plus button to the new far right edge
         const addButton = document.querySelector('.btn-add-slide');
         addButton.style.left = (totalWidth + 10) + 'px';
+
+        this.saveState();
 
         // Update info text
         document.getElementById('canvasInfo').textContent =
@@ -438,6 +448,7 @@ const app = {
 
             this.canvasImages.push(newCanvasImage);
             this.renderCanvasImages();
+            this.saveState();
         };
         img.src = libraryImage.src;
     },
@@ -465,6 +476,7 @@ const app = {
         this.canvasTexts.push(newText);
         this.selectedTextId = newText.id;
         this.renderCanvasImages();
+        this.saveState();
     },
 
     renderCanvasImages() {
@@ -765,13 +777,19 @@ const app = {
         fontSelect.onclick = (e) => e.stopPropagation();
         fontSelect.onmousedown = (e) => e.stopPropagation();
 
-        // Size input
-        const sizeInput = document.createElement('input');
-        sizeInput.type = 'number';
+        // Size select dropdown
+        const sizeInput = document.createElement('select');
         sizeInput.className = 'text-style-size';
-        sizeInput.value = txt.size;
-        sizeInput.min = 12;
-        sizeInput.max = 72;
+        const fontSizes = [12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56, 64, 72];
+        fontSizes.forEach(size => {
+            const option = document.createElement('option');
+            option.value = size;
+            option.textContent = size;
+            if (size === txt.size) {
+                option.selected = true;
+            }
+            sizeInput.appendChild(option);
+        });
         sizeInput.oninput = (e) => {
             e.stopPropagation();
             this.updateSelectedTextSize(e.target.value);
@@ -1033,9 +1051,14 @@ const app = {
     },
 
     handleCanvasMouseUp() {
+        const hadOperation = this.dragData || this.textDragData || this.resizeData;
         this.dragData = null;
         this.textDragData = null;
         this.resizeData = null;
+
+        if (hadOperation) {
+            this.saveState();
+        }
     },
 
     handleCanvasTouchStart(e) {
@@ -1072,6 +1095,7 @@ const app = {
         this.canvasImages = this.canvasImages.filter(img => img.id !== imageId);
         this.selectedImageId = null;
         this.renderCanvasImages();
+        this.saveState();
     },
 
     toggleLockImage(imageId) {
@@ -1190,6 +1214,7 @@ const app = {
         this.cropMode = false;
         this.cropData = null;
         this.renderCanvasImages();
+        this.saveState();
     },
 
     cancelCrop() {
@@ -1287,6 +1312,7 @@ const app = {
         if (text) {
             text.font = font;
             this.renderCanvasImages();
+            this.saveState();
         }
     },
 
@@ -1296,6 +1322,7 @@ const app = {
         if (text) {
             text.size = parseInt(size);
             this.renderCanvasImages();
+            this.saveState();
         }
     },
 
@@ -1305,6 +1332,7 @@ const app = {
         if (text) {
             text.color = color;
             this.renderCanvasImages();
+            this.saveState();
         }
     },
 
@@ -1471,12 +1499,96 @@ const app = {
     },
 
     stopDrawing() {
+        if (this.isDrawing) {
+            this.saveState();
+        }
         this.isDrawing = false;
     },
 
     clearDrawing() {
         if (!this.drawingCtx) return;
         this.drawingCtx.clearRect(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
+        this.saveState();
+    },
+
+    // Save current state to history
+    saveState() {
+        // Get current canvas state including drawing
+        const drawingDataURL = this.drawingCanvas ? this.drawingCanvas.toDataURL() : null;
+
+        const state = {
+            canvasImages: JSON.parse(JSON.stringify(this.canvasImages)),
+            canvasTexts: JSON.parse(JSON.stringify(this.canvasTexts)),
+            numSlides: this.numSlides,
+            drawingData: drawingDataURL
+        };
+
+        // Remove any states after current index (for when user undoes then makes new change)
+        this.history = this.history.slice(0, this.historyIndex + 1);
+
+        // Add new state
+        this.history.push(state);
+
+        // Limit history size
+        if (this.history.length > this.maxHistorySize) {
+            this.history.shift();
+        } else {
+            this.historyIndex++;
+        }
+
+        this.updateHistoryButtons();
+    },
+
+    // Restore state from history
+    restoreState(state) {
+        this.canvasImages = JSON.parse(JSON.stringify(state.canvasImages));
+        this.canvasTexts = JSON.parse(JSON.stringify(state.canvasTexts));
+        this.numSlides = state.numSlides;
+
+        // Restore drawing canvas
+        if (state.drawingData && this.drawingCanvas) {
+            const img = new Image();
+            img.onload = () => {
+                this.drawingCtx.clearRect(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
+                this.drawingCtx.drawImage(img, 0, 0);
+            };
+            img.src = state.drawingData;
+        } else if (this.drawingCanvas) {
+            this.drawingCtx.clearRect(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
+        }
+
+        this.renderCanvasImages();
+        this.updateHistoryButtons();
+    },
+
+    // Undo last action
+    undo() {
+        if (this.historyIndex <= 0) return;
+
+        this.historyIndex--;
+        this.restoreState(this.history[this.historyIndex]);
+    },
+
+    // Redo last undone action
+    redo() {
+        if (this.historyIndex >= this.history.length - 1) return;
+
+        this.historyIndex++;
+        this.restoreState(this.history[this.historyIndex]);
+    },
+
+    // Update undo/redo button states
+    updateHistoryButtons() {
+        const undoBtn = document.getElementById('btnUndo');
+        const redoBtn = document.getElementById('btnRedo');
+
+        if (undoBtn) {
+            undoBtn.disabled = this.historyIndex <= 0;
+        }
+
+        if (redoBtn) {
+            redoBtn.disabled = this.historyIndex >= this.history.length - 1;
+        }
     }
 };
 
