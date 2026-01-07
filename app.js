@@ -1594,46 +1594,75 @@ const app = {
         }
     },
 
-    // Show preview modal
+    // Show preview modal - Carousel style
     showPreview() {
         this.currentPreviewSlide = 0;
-        this.renderPreviewSlide();
+        this.renderCarouselPreview();
         const modal = document.getElementById('canvasPreviewModal');
         modal.classList.add('active');
-        this.updatePreviewNavButtons();
+        this.setupCarouselListeners();
     },
 
     // Close preview modal
     closePreview() {
         const modal = document.getElementById('canvasPreviewModal');
         modal.classList.remove('active');
+        this.removeCarouselListeners();
     },
 
-    // Navigate between slides in preview
-    navigatePreviewSlide(direction) {
-        const newSlide = this.currentPreviewSlide + direction;
-        if (newSlide < 0 || newSlide >= this.numSlides) return;
+    // Render all slides in carousel
+    renderCarouselPreview() {
+        const track = document.getElementById('carouselTrack');
+        const dotsContainer = document.getElementById('carouselDots');
 
-        this.currentPreviewSlide = newSlide;
-        this.renderPreviewSlide();
-        this.updatePreviewNavButtons();
+        // Clear existing content
+        track.innerHTML = '';
+        dotsContainer.innerHTML = '';
+
+        // Create all slides
+        for (let slideIndex = 0; slideIndex < this.numSlides; slideIndex++) {
+            // Create slide container
+            const slideDiv = document.createElement('div');
+            slideDiv.className = 'carousel-slide';
+
+            // Create canvas for this slide
+            const canvas = document.createElement('canvas');
+            canvas.width = this.canvasDimensions.width;
+            canvas.height = this.canvasDimensions.height;
+
+            // Render slide content
+            this.renderSlideToCanvas(canvas, slideIndex);
+
+            slideDiv.appendChild(canvas);
+            track.appendChild(slideDiv);
+
+            // Create dot indicator
+            const dot = document.createElement('div');
+            dot.className = 'carousel-dot' + (slideIndex === 0 ? ' active' : '');
+            dot.addEventListener('click', () => this.scrollToSlide(slideIndex));
+            dotsContainer.appendChild(dot);
+        }
+
+        // Hide dots if only one slide
+        if (this.numSlides <= 1) {
+            dotsContainer.style.display = 'none';
+        } else {
+            dotsContainer.style.display = 'flex';
+        }
+
+        this.updateCarouselNavButtons();
     },
 
-    // Render current slide in preview
-    renderPreviewSlide() {
-        const previewCanvas = document.getElementById('previewCanvas');
-        const ctx = previewCanvas.getContext('2d');
+    // Render a single slide to canvas
+    renderSlideToCanvas(canvas, slideIndex) {
+        const ctx = canvas.getContext('2d');
 
-        // Set canvas size to match slide dimensions
-        previewCanvas.width = this.canvasDimensions.width;
-        previewCanvas.height = this.canvasDimensions.height;
-
-        // Clear canvas
+        // Clear canvas with white background
         ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         // Calculate slide bounds
-        const slideStartX = this.currentPreviewSlide * this.canvasDimensions.width;
+        const slideStartX = slideIndex * this.canvasDimensions.width;
         const slideEndX = slideStartX + this.canvasDimensions.width;
 
         // Get all items (images and texts) that are on this slide
@@ -1670,10 +1699,6 @@ const app = {
                 0, 0, this.canvasDimensions.width, this.canvasDimensions.height
             );
         }
-
-        // Update slide info
-        document.getElementById('previewSlideInfo').textContent =
-            `Slide ${this.currentPreviewSlide + 1} of ${this.numSlides}`;
     },
 
     // Render image in preview
@@ -1710,10 +1735,68 @@ const app = {
         ctx.fillText(txt.text, x, y);
     },
 
-    // Update preview navigation button states
-    updatePreviewNavButtons() {
-        const prevBtn = document.getElementById('prevSlideBtn');
-        const nextBtn = document.getElementById('nextSlideBtn');
+    // Navigate between slides - button click
+    navigatePreviewSlide(direction, event) {
+        if (event) event.stopPropagation();
+        const newSlide = this.currentPreviewSlide + direction;
+        if (newSlide < 0 || newSlide >= this.numSlides) return;
+
+        this.scrollToSlide(newSlide);
+    },
+
+    // Scroll to specific slide
+    scrollToSlide(slideIndex) {
+        const track = document.getElementById('carouselTrack');
+        const slideWidth = track.scrollWidth / this.numSlides;
+        track.scrollTo({
+            left: slideIndex * slideWidth,
+            behavior: 'smooth'
+        });
+    },
+
+    // Setup carousel event listeners
+    setupCarouselListeners() {
+        const track = document.getElementById('carouselTrack');
+
+        // Handle scroll event to update current slide
+        this.carouselScrollHandler = () => {
+            const slideWidth = track.scrollWidth / this.numSlides;
+            const newSlide = Math.round(track.scrollLeft / slideWidth);
+
+            if (newSlide !== this.currentPreviewSlide) {
+                this.currentPreviewSlide = newSlide;
+                this.updateCarouselDots();
+                this.updateCarouselNavButtons();
+            }
+        };
+
+        track.addEventListener('scroll', this.carouselScrollHandler);
+    },
+
+    // Remove carousel event listeners
+    removeCarouselListeners() {
+        const track = document.getElementById('carouselTrack');
+        if (this.carouselScrollHandler) {
+            track.removeEventListener('scroll', this.carouselScrollHandler);
+        }
+    },
+
+    // Update dot indicators
+    updateCarouselDots() {
+        const dots = document.querySelectorAll('.carousel-dot');
+        dots.forEach((dot, index) => {
+            if (index === this.currentPreviewSlide) {
+                dot.classList.add('active');
+            } else {
+                dot.classList.remove('active');
+            }
+        });
+    },
+
+    // Update navigation button states
+    updateCarouselNavButtons() {
+        const prevBtn = document.getElementById('carouselPrevBtn');
+        const nextBtn = document.getElementById('carouselNextBtn');
 
         if (prevBtn) {
             prevBtn.disabled = this.currentPreviewSlide <= 0;
@@ -1721,12 +1804,6 @@ const app = {
 
         if (nextBtn) {
             nextBtn.disabled = this.currentPreviewSlide >= this.numSlides - 1;
-        }
-
-        // Hide navigation if only one slide
-        const navContainer = document.getElementById('previewNavigation');
-        if (navContainer) {
-            navContainer.style.display = this.numSlides > 1 ? 'flex' : 'none';
         }
     }
 };
