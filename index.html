@@ -551,6 +551,105 @@
             right: 20px;
         }
 
+        /* Canvas Preview Modal */
+        .canvas-preview-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .canvas-preview-modal.active {
+            display: flex;
+        }
+
+        .preview-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 90%;
+            max-height: 90%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+        }
+
+        .preview-header {
+            text-align: center;
+        }
+
+        .preview-header h3 {
+            margin: 0 0 8px 0;
+            font-size: 24px;
+            color: #1a1a1a;
+        }
+
+        .preview-header p {
+            margin: 0;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .preview-canvas-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: auto;
+        }
+
+        #previewCanvas {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .preview-navigation {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .preview-nav-btn-inline {
+            padding: 10px 20px;
+            background: white;
+            color: #1a1a1a;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            touch-action: manipulation;
+            transition: all 0.2s ease;
+        }
+
+        .preview-nav-btn-inline:hover {
+            border-color: #1a1a1a;
+            background: #f5f5f5;
+        }
+
+        .preview-nav-btn-inline:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .preview-nav-btn-inline:disabled:hover {
+            border-color: #e0e0e0;
+            background: white;
+        }
+
         .image-remove-btn {
             position: absolute;
             top: 6px;
@@ -710,6 +809,27 @@
         .btn-history:disabled:hover {
             border-color: #e0e0e0;
             background: white;
+        }
+
+        .btn-preview {
+            padding: 10px 20px;
+            background: white;
+            color: #1a1a1a;
+            border: 2px solid #1a1a1a;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            touch-action: manipulation;
+            transition: all 0.2s ease;
+        }
+
+        .btn-preview:hover {
+            background: #f5f5f5;
         }
 
         .canvas-actions {
@@ -1876,6 +1996,13 @@
                             <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path>
                         </svg>
                     </button>
+                    <button class="btn-preview" onclick="app.showPreview()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        Preview
+                    </button>
                     <button class="btn-export" onclick="app.exportCarousel()">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -2053,6 +2180,34 @@
             <button id="previewNavLeft" class="preview-nav-btn preview-nav-left" onclick="app.navigatePreview(-1, event)">‹</button>
             <img id="previewImage" src="" alt="Preview">
             <button id="previewNavRight" class="preview-nav-btn preview-nav-right" onclick="app.navigatePreview(1, event)">›</button>
+        </div>
+
+        <!-- Canvas Preview Modal -->
+        <div id="canvasPreviewModal" class="canvas-preview-modal" onclick="app.closePreview()">
+            <div class="preview-content" onclick="event.stopPropagation()">
+                <button class="preview-close-btn" onclick="app.closePreview()">×</button>
+                <div class="preview-header">
+                    <h3>Preview</h3>
+                    <p id="previewSlideInfo">Slide 1 of 1</p>
+                </div>
+                <div class="preview-canvas-container">
+                    <canvas id="previewCanvas"></canvas>
+                </div>
+                <div class="preview-navigation" id="previewNavigation">
+                    <button class="preview-nav-btn-inline" id="prevSlideBtn" onclick="app.navigatePreviewSlide(-1)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                        Previous
+                    </button>
+                    <button class="preview-nav-btn-inline" id="nextSlideBtn" onclick="app.navigatePreviewSlide(1)">
+                        Next
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 

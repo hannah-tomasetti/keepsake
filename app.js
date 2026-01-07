@@ -35,6 +35,9 @@ const app = {
     historyIndex: -1,
     maxHistorySize: 50,
 
+    // Preview state
+    currentPreviewSlide: 0,
+
     init() {
         this.setupEventListeners();
     },
@@ -1588,6 +1591,142 @@ const app = {
 
         if (redoBtn) {
             redoBtn.disabled = this.historyIndex >= this.history.length - 1;
+        }
+    },
+
+    // Show preview modal
+    showPreview() {
+        this.currentPreviewSlide = 0;
+        this.renderPreviewSlide();
+        const modal = document.getElementById('canvasPreviewModal');
+        modal.classList.add('active');
+        this.updatePreviewNavButtons();
+    },
+
+    // Close preview modal
+    closePreview() {
+        const modal = document.getElementById('canvasPreviewModal');
+        modal.classList.remove('active');
+    },
+
+    // Navigate between slides in preview
+    navigatePreviewSlide(direction) {
+        const newSlide = this.currentPreviewSlide + direction;
+        if (newSlide < 0 || newSlide >= this.numSlides) return;
+
+        this.currentPreviewSlide = newSlide;
+        this.renderPreviewSlide();
+        this.updatePreviewNavButtons();
+    },
+
+    // Render current slide in preview
+    renderPreviewSlide() {
+        const previewCanvas = document.getElementById('previewCanvas');
+        const ctx = previewCanvas.getContext('2d');
+
+        // Set canvas size to match slide dimensions
+        previewCanvas.width = this.canvasDimensions.width;
+        previewCanvas.height = this.canvasDimensions.height;
+
+        // Clear canvas
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+        // Calculate slide bounds
+        const slideStartX = this.currentPreviewSlide * this.canvasDimensions.width;
+        const slideEndX = slideStartX + this.canvasDimensions.width;
+
+        // Get all items (images and texts) that are on this slide
+        const allItems = [
+            ...this.canvasImages.map(img => ({ type: 'image', data: img, zIndex: img.zIndex })),
+            ...this.canvasTexts.map(txt => ({ type: 'text', data: txt, zIndex: txt.zIndex }))
+        ];
+
+        // Sort by zIndex
+        allItems.sort((a, b) => a.zIndex - b.zIndex);
+
+        // Render items on this slide
+        allItems.forEach(item => {
+            if (item.type === 'image') {
+                const img = item.data;
+                // Check if image is on this slide
+                if (img.x + img.width > slideStartX && img.x < slideEndX) {
+                    this.renderPreviewImage(img, ctx, slideStartX);
+                }
+            } else if (item.type === 'text') {
+                const txt = item.data;
+                // Check if text is on this slide
+                if (txt.x >= slideStartX && txt.x < slideEndX) {
+                    this.renderPreviewText(txt, ctx, slideStartX);
+                }
+            }
+        });
+
+        // Render drawing canvas for this slide
+        if (this.drawingCanvas) {
+            ctx.drawImage(
+                this.drawingCanvas,
+                slideStartX, 0, this.canvasDimensions.width, this.canvasDimensions.height,
+                0, 0, this.canvasDimensions.width, this.canvasDimensions.height
+            );
+        }
+
+        // Update slide info
+        document.getElementById('previewSlideInfo').textContent =
+            `Slide ${this.currentPreviewSlide + 1} of ${this.numSlides}`;
+    },
+
+    // Render image in preview
+    renderPreviewImage(img, ctx, slideStartX) {
+        const image = new Image();
+        image.onload = () => {
+            const x = img.x - slideStartX;
+            const y = img.y;
+
+            if (img.crop) {
+                ctx.drawImage(
+                    image,
+                    img.crop.offsetX,
+                    img.crop.offsetY,
+                    img.crop.sourceWidth,
+                    img.crop.sourceHeight,
+                    x, y, img.width, img.height
+                );
+            } else {
+                ctx.drawImage(image, x, y, img.width, img.height);
+            }
+        };
+        image.src = img.src;
+    },
+
+    // Render text in preview
+    renderPreviewText(txt, ctx, slideStartX) {
+        const x = txt.x - slideStartX;
+        const y = txt.y;
+
+        ctx.font = `${txt.size}px ${txt.font}`;
+        ctx.fillStyle = txt.color;
+        ctx.textBaseline = 'top';
+        ctx.fillText(txt.text, x, y);
+    },
+
+    // Update preview navigation button states
+    updatePreviewNavButtons() {
+        const prevBtn = document.getElementById('prevSlideBtn');
+        const nextBtn = document.getElementById('nextSlideBtn');
+
+        if (prevBtn) {
+            prevBtn.disabled = this.currentPreviewSlide <= 0;
+        }
+
+        if (nextBtn) {
+            nextBtn.disabled = this.currentPreviewSlide >= this.numSlides - 1;
+        }
+
+        // Hide navigation if only one slide
+        const navContainer = document.getElementById('previewNavigation');
+        if (navContainer) {
+            navContainer.style.display = this.numSlides > 1 ? 'flex' : 'none';
         }
     }
 };
