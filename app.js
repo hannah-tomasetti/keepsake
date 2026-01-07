@@ -453,7 +453,7 @@ const app = {
 
         const newText = {
             id: Date.now() + Math.random(),
-            text: 'Double click to edit',
+            text: 'Click to edit',
             x: absoluteX,
             y: 100,
             font: 'Poppins',
@@ -772,20 +772,19 @@ const app = {
         sizeInput.value = txt.size;
         sizeInput.min = 12;
         sizeInput.max = 72;
-        sizeInput.onchange = (e) => {
+        sizeInput.oninput = (e) => {
             e.stopPropagation();
             this.updateSelectedTextSize(e.target.value);
         };
         sizeInput.onclick = (e) => e.stopPropagation();
         sizeInput.onmousedown = (e) => e.stopPropagation();
-        sizeInput.oninput = (e) => e.stopPropagation();
 
         // Color input
         const colorInput = document.createElement('input');
         colorInput.type = 'color';
         colorInput.className = 'text-style-color';
         colorInput.value = txt.color;
-        colorInput.onchange = (e) => {
+        colorInput.oninput = (e) => {
             e.stopPropagation();
             this.updateSelectedTextColor(e.target.value);
         };
@@ -1432,40 +1431,40 @@ const app = {
         const coords = this.getCanvasCoordinates(e);
         const ctx = this.drawingCtx;
 
-        ctx.beginPath();
-        ctx.moveTo(this.lastX, this.lastY);
-        ctx.lineTo(coords.x, coords.y);
-
         // Set drawing properties based on tool
         if (this.drawTool === 'eraser') {
             ctx.globalCompositeOperation = 'destination-out';
-            ctx.lineWidth = this.drawWeight * 2; // Eraser is bigger
+            ctx.lineWidth = this.drawWeight * 2;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
+            ctx.globalAlpha = 1;
         } else {
             ctx.globalCompositeOperation = 'source-over';
             ctx.strokeStyle = this.drawColor;
-            ctx.globalAlpha = this.drawOpacity / 100;
             ctx.lineWidth = this.drawWeight;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
 
-            // Different line styles for different tools
-            if (this.drawTool === 'pen') {
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-            } else if (this.drawTool === 'marker') {
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                ctx.lineWidth = this.drawWeight * 1.5; // Marker is thicker
+            // Apply opacity
+            const alpha = this.drawOpacity / 100;
+            ctx.globalAlpha = alpha;
+
+            // Different line widths for different tools
+            if (this.drawTool === 'marker') {
+                ctx.lineWidth = this.drawWeight * 1.5;
             } else if (this.drawTool === 'highlighter') {
                 ctx.lineCap = 'square';
                 ctx.lineJoin = 'miter';
-                ctx.lineWidth = this.drawWeight * 2; // Highlighter is widest
-                ctx.globalAlpha = 0.3; // Highlighter is more transparent
+                ctx.lineWidth = this.drawWeight * 2;
+                ctx.globalAlpha = 0.3;
             }
         }
 
+        // Draw smooth line without overlapping opacity
+        ctx.beginPath();
+        ctx.moveTo(this.lastX, this.lastY);
+        ctx.lineTo(coords.x, coords.y);
         ctx.stroke();
-        ctx.globalAlpha = 1; // Reset alpha
 
         this.lastX = coords.x;
         this.lastY = coords.y;
