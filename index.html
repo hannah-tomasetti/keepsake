@@ -616,8 +616,8 @@
             position: absolute;
             top: 50%;
             transform: translateY(-50%);
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.9);
             color: #1a1a1a;
@@ -647,11 +647,27 @@
         }
 
         .carousel-nav-left {
-            left: 20px;
+            left: 10px;
         }
 
         .carousel-nav-right {
-            right: 20px;
+            right: 10px;
+        }
+
+        /* Larger arrows on desktop */
+        @media (min-width: 768px) {
+            .carousel-nav-btn {
+                width: 50px;
+                height: 50px;
+            }
+
+            .carousel-nav-left {
+                left: 20px;
+            }
+
+            .carousel-nav-right {
+                right: 20px;
+            }
         }
 
         .carousel-dots {
@@ -2212,12 +2228,12 @@
         <div id="canvasPreviewModal" class="canvas-preview-modal" onclick="app.closePreview()">
             <button class="preview-close-btn" onclick="app.closePreview()">×</button>
             <button class="carousel-nav-btn carousel-nav-left" id="carouselPrevBtn" onclick="app.navigatePreviewSlide(-1, event)">
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="15 18 9 12 15 6"></polyline>
                 </svg>
             </button>
             <button class="carousel-nav-btn carousel-nav-right" id="carouselNextBtn" onclick="app.navigatePreviewSlide(1, event)">
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="9 18 15 12 9 6"></polyline>
                 </svg>
             </button>
