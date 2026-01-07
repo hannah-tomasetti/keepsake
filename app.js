@@ -701,7 +701,7 @@ const app = {
         // Clear placeholder text on first focus
         textEl.addEventListener('focus', (e) => {
             const text = this.canvasTexts.find(t => t.id == txt.id);
-            if (text && text.text === 'Double click to edit') {
+            if (text && text.text === 'Click to edit') {
                 // Select all so user can just start typing to replace
                 setTimeout(() => {
                     const range = document.createRange();
