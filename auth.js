@@ -45,7 +45,14 @@ class AuthManager {
         if (modal && loginForm && signupForm) {
             loginForm.style.display = 'block';
             signupForm.style.display = 'none';
-            modal.style.display = 'flex';
+            modal.classList.add('active');
+
+            // Close modal when clicking outside
+            modal.onclick = (e) => {
+                if (e.target === modal) {
+                    this.closeAuthModal();
+                }
+            };
         }
     }
 
@@ -58,7 +65,14 @@ class AuthManager {
         if (modal && loginForm && signupForm) {
             loginForm.style.display = 'none';
             signupForm.style.display = 'block';
-            modal.style.display = 'flex';
+            modal.classList.add('active');
+
+            // Close modal when clicking outside
+            modal.onclick = (e) => {
+                if (e.target === modal) {
+                    this.closeAuthModal();
+                }
+            };
         }
     }
 
@@ -66,7 +80,7 @@ class AuthManager {
     closeAuthModal() {
         const modal = document.getElementById('authModal');
         if (modal) {
-            modal.style.display = 'none';
+            modal.classList.remove('active');
         }
     }
 
@@ -84,49 +98,51 @@ class AuthManager {
 
     // Handle login
     async handleLogin(event) {
-        event.preventDefault();
+        if (event) event.preventDefault();
 
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
-        const errorDiv = document.getElementById('loginError');
+
+        if (!email || !password) {
+            this.showError('Please enter email and password');
+            return;
+        }
 
         try {
             const { user } = await auth.signIn(email, password);
             this.closeAuthModal();
             this.showSuccess('Welcome back!');
+            // Clear form
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginPassword').value = '';
         } catch (error) {
             console.error('Login error:', error);
-            if (errorDiv) {
-                errorDiv.textContent = error.message || 'Login failed. Please try again.';
-                errorDiv.style.display = 'block';
-            }
+            this.showError(error.message || 'Login failed. Please try again.');
         }
     }
 
     // Handle signup
     async handleSignup(event) {
-        event.preventDefault();
+        if (event) event.preventDefault();
 
         const email = document.getElementById('signupEmail').value;
         const password = document.getElementById('signupPassword').value;
-        const confirmPassword = document.getElementById('signupConfirmPassword').value;
-        const errorDiv = document.getElementById('signupError');
+        const confirmPassword = document.getElementById('signupPasswordConfirm').value;
+
+        if (!email || !password || !confirmPassword) {
+            this.showError('Please fill in all fields');
+            return;
+        }
 
         // Validate passwords match
         if (password !== confirmPassword) {
-            if (errorDiv) {
-                errorDiv.textContent = 'Passwords do not match';
-                errorDiv.style.display = 'block';
-            }
+            this.showError('Passwords do not match');
             return;
         }
 
         // Validate password strength
         if (password.length < 6) {
-            if (errorDiv) {
-                errorDiv.textContent = 'Password must be at least 6 characters';
-                errorDiv.style.display = 'block';
-            }
+            this.showError('Password must be at least 6 characters');
             return;
         }
 
@@ -134,12 +150,13 @@ class AuthManager {
             const { user } = await auth.signUp(email, password);
             this.closeAuthModal();
             this.showSuccess('Account created! Please check your email to verify your account.');
+            // Clear form
+            document.getElementById('signupEmail').value = '';
+            document.getElementById('signupPassword').value = '';
+            document.getElementById('signupPasswordConfirm').value = '';
         } catch (error) {
             console.error('Signup error:', error);
-            if (errorDiv) {
-                errorDiv.textContent = error.message || 'Signup failed. Please try again.';
-                errorDiv.style.display = 'block';
-            }
+            this.showError(error.message || 'Signup failed. Please try again.');
         }
     }
 
@@ -181,65 +198,37 @@ class AuthManager {
     // Callback when auth state changes
     onAuthStateChanged(user) {
         // Update UI based on auth state
-        const loginBtn = document.getElementById('headerLoginBtn');
-        const userMenu = document.getElementById('headerUserMenu');
-        const userEmail = document.getElementById('headerUserEmail');
+        const signInBtn = document.getElementById('signInBtn');
+        const myProjectsBtn = document.getElementById('myProjectsBtn');
+        const signOutBtn = document.getElementById('signOutBtn');
+        const userWelcome = document.getElementById('userWelcome');
+        const btnSave = document.getElementById('btnSave');
 
         if (user) {
             // User is logged in
-            if (loginBtn) loginBtn.style.display = 'none';
-            if (userMenu) userMenu.style.display = 'flex';
-            if (userEmail) userEmail.textContent = user.email;
+            if (signInBtn) signInBtn.style.display = 'none';
+            if (myProjectsBtn) myProjectsBtn.style.display = 'inline-block';
+            if (signOutBtn) signOutBtn.style.display = 'inline-block';
+            if (btnSave) btnSave.style.display = 'flex';
 
-            // Update welcome screen
-            this.updateWelcomeScreen(true);
+            if (userWelcome) {
+                userWelcome.textContent = `Welcome back, ${user.email}`;
+                userWelcome.style.display = 'block';
+            }
+
+            console.log('User logged in:', user.email);
         } else {
             // User is logged out
-            if (loginBtn) loginBtn.style.display = 'block';
-            if (userMenu) userMenu.style.display = 'none';
+            if (signInBtn) signInBtn.style.display = 'inline-block';
+            if (myProjectsBtn) myProjectsBtn.style.display = 'none';
+            if (signOutBtn) signOutBtn.style.display = 'none';
+            if (btnSave) btnSave.style.display = 'none';
 
-            // Update welcome screen
-            this.updateWelcomeScreen(false);
-        }
-    }
+            if (userWelcome) {
+                userWelcome.style.display = 'none';
+            }
 
-    // Update welcome screen based on auth state
-    updateWelcomeScreen(isLoggedIn) {
-        const welcomeContent = document.querySelector('.welcome-content');
-        if (!welcomeContent) return;
-
-        const existingButtons = welcomeContent.querySelectorAll('.auth-button-group');
-        existingButtons.forEach(btn => btn.remove());
-
-        if (isLoggedIn) {
-            // Show "My Projects" and "New Project" buttons
-            const buttonGroup = document.createElement('div');
-            buttonGroup.className = 'auth-button-group';
-            buttonGroup.innerHTML = `
-                <button class="btn-primary" onclick="authManager.goToMyProjects()">
-                    My Projects
-                </button>
-                <button class="btn-secondary" onclick="app.goToProject()">
-                    Create New Project
-                </button>
-            `;
-            welcomeContent.querySelector('.tagline').after(buttonGroup);
-        } else {
-            // Show login/signup options
-            const buttonGroup = document.createElement('div');
-            buttonGroup.className = 'auth-button-group';
-            buttonGroup.innerHTML = `
-                <button class="btn-primary" onclick="app.goToProject()">
-                    Try Keepsake
-                </button>
-                <div style="margin: 15px 0; color: #666; font-size: 14px;">
-                    or
-                </div>
-                <button class="btn-secondary" onclick="authManager.showLogin()">
-                    Login to Save Projects
-                </button>
-            `;
-            welcomeContent.querySelector('.tagline').after(buttonGroup);
+            console.log('User logged out');
         }
     }
 
