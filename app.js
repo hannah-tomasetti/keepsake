@@ -23,7 +23,7 @@ const app = {
     drawingCanvas: null,
     drawingCtx: null,
     isDrawing: false,
-    drawTool: 'pen', // 'pen', 'marker', 'highlighter', 'eraser'
+    drawTool: 'pen', // 'pen' or 'eraser'
     drawColor: '#1a1a1a',
     drawWeight: 12,
     drawOpacity: 100,
@@ -1470,6 +1470,7 @@ const app = {
             ctx.lineJoin = 'round';
             ctx.globalAlpha = 1;
         } else {
+            // Pen tool
             ctx.globalCompositeOperation = 'source-over';
             ctx.strokeStyle = this.drawColor;
             ctx.lineWidth = this.drawWeight;
@@ -1479,16 +1480,6 @@ const app = {
             // Apply opacity
             const alpha = this.drawOpacity / 100;
             ctx.globalAlpha = alpha;
-
-            // Different line widths for different tools
-            if (this.drawTool === 'marker') {
-                ctx.lineWidth = this.drawWeight * 1.5;
-            } else if (this.drawTool === 'highlighter') {
-                ctx.lineCap = 'square';
-                ctx.lineJoin = 'miter';
-                ctx.lineWidth = this.drawWeight * 2;
-                ctx.globalAlpha = 0.3;
-            }
         }
 
         // Draw smooth line without overlapping opacity
