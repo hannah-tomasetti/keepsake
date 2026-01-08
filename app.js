@@ -19,17 +19,6 @@ const app = {
     numSlides: 1,
     selectedTool: null,
 
-    // Drawing tool state
-    drawingCanvas: null,
-    drawingCtx: null,
-    isDrawing: false,
-    drawTool: 'pen', // 'pen' or 'eraser'
-    drawColor: '#1a1a1a',
-    drawWeight: 12,
-    drawOpacity: 100,
-    lastX: 0,
-    lastY: 0,
-
     // Shapes tool state
     canvasShapes: [],
     selectedShape: null, // current shape type to add
@@ -273,12 +262,8 @@ const app = {
         canvas.style.width = totalWidth + 'px';
         canvas.style.height = this.canvasDimensions.height + 'px';
 
-        // Clear canvas but preserve the drawing canvas
-        const drawingCanvas = document.getElementById('drawingCanvas');
+        // Clear canvas
         canvas.innerHTML = '';
-        if (drawingCanvas) {
-            canvas.appendChild(drawingCanvas);
-        }
 
         for (let i = 1; i < this.numSlides; i++) {
             const line = document.createElement('div');
@@ -301,9 +286,6 @@ const app = {
 
         this.updateLibraryGrid();
         document.getElementById('libraryCount').textContent = this.imageLibrary.length;
-
-        // Initialize drawing canvas
-        this.initDrawingCanvas();
 
         this.renderCanvasImages();
 
@@ -368,9 +350,6 @@ const app = {
         }
 
         this.selectedTool = toolName;
-
-        // Update drawing canvas state
-        this.updateDrawingCanvasState();
     },
 
     updateLibraryGrid() {
@@ -493,14 +472,16 @@ const app = {
     renderCanvasImages() {
         const canvas = document.getElementById('canvas');
 
-        // Remove all existing elements but preserve drawing canvas and splice lines
+        // Remove all existing elements
         canvas.querySelectorAll('.canvas-image').forEach(el => el.remove());
         canvas.querySelectorAll('.canvas-text').forEach(el => el.remove());
+        canvas.querySelectorAll('.canvas-shape').forEach(el => el.remove());
 
-        // Combine all elements (images and text) and sort by z-index
+        // Combine all elements (images, text, and shapes) and sort by z-index
         const allElements = [
             ...this.canvasImages.map(img => ({ type: 'image', element: img })),
-            ...this.canvasTexts.map(txt => ({ type: 'text', element: txt }))
+            ...this.canvasTexts.map(txt => ({ type: 'text', element: txt })),
+            ...this.canvasShapes.map(shp => ({ type: 'shape', element: shp }))
         ].sort((a, b) => a.element.zIndex - b.element.zIndex);
 
         // Render all elements in z-index order (low to high)
@@ -509,6 +490,8 @@ const app = {
                 this.renderImage(item.element, canvas);
             } else if (item.type === 'text') {
                 this.renderText(item.element, canvas);
+            } else if (item.type === 'shape') {
+                this.renderShape(item.element, canvas);
             }
         });
     },
@@ -1311,12 +1294,14 @@ const app = {
         // Find the highest zIndex among all elements
         const allZIndexes = [
             ...this.canvasImages.map(img => img.zIndex),
-            ...this.canvasTexts.map(txt => txt.zIndex)
+            ...this.canvasTexts.map(txt => txt.zIndex),
+            ...this.canvasShapes.map(shp => shp.zIndex)
         ];
         const maxZIndex = Math.max(...allZIndexes);
 
         text.zIndex = maxZIndex + 1;
         this.renderCanvasImages();
+        this.saveState();
     },
 
     moveTextToBack(textId) {
@@ -1326,12 +1311,14 @@ const app = {
         // Find the lowest zIndex among all elements
         const allZIndexes = [
             ...this.canvasImages.map(img => img.zIndex),
-            ...this.canvasTexts.map(txt => txt.zIndex)
+            ...this.canvasTexts.map(txt => txt.zIndex),
+            ...this.canvasShapes.map(shp => shp.zIndex)
         ];
         const minZIndex = Math.min(...allZIndexes);
 
         text.zIndex = minZIndex - 1;
         this.renderCanvasImages();
+        this.saveState();
     },
 
     updateSelectedTextFont(font) {
@@ -1367,167 +1354,6 @@ const app = {
     exportCarousel() {
         const numSlides = Math.max(1, Math.ceil(this.imageLibrary.length / 3));
         alert(`🎉 Ready to export ${numSlides} slide${numSlides > 1 ? 's' : ''}!\n\nIn the full version, this will download your carousel as high-resolution images (1080px) ready to post on Instagram or TikTok.`);
-    },
-
-    // ============ DRAWING TOOL FUNCTIONS ============
-
-    initDrawingCanvas() {
-        this.drawingCanvas = document.getElementById('drawingCanvas');
-        if (!this.drawingCanvas) return;
-
-        this.drawingCtx = this.drawingCanvas.getContext('2d');
-
-        // Set canvas size to match the main canvas
-        const totalWidth = this.canvasDimensions.width * this.numSlides;
-        this.drawingCanvas.width = totalWidth;
-        this.drawingCanvas.height = this.canvasDimensions.height;
-        this.drawingCanvas.style.width = totalWidth + 'px';
-        this.drawingCanvas.style.height = this.canvasDimensions.height + 'px';
-
-        // Setup drawing event listeners
-        this.setupDrawingListeners();
-    },
-
-    setupDrawingListeners() {
-        if (!this.drawingCanvas) return;
-
-        // Mouse events
-        this.drawingCanvas.addEventListener('mousedown', (e) => this.startDrawing(e));
-        this.drawingCanvas.addEventListener('mousemove', (e) => this.draw(e));
-        this.drawingCanvas.addEventListener('mouseup', () => this.stopDrawing());
-        this.drawingCanvas.addEventListener('mouseout', () => this.stopDrawing());
-
-        // Touch events
-        this.drawingCanvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            const touch = e.touches[0];
-            const mouseEvent = new MouseEvent('mousedown', {
-                clientX: touch.clientX,
-                clientY: touch.clientY
-            });
-            this.drawingCanvas.dispatchEvent(mouseEvent);
-        }, { passive: false });
-
-        this.drawingCanvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            const touch = e.touches[0];
-            const mouseEvent = new MouseEvent('mousemove', {
-                clientX: touch.clientX,
-                clientY: touch.clientY
-            });
-            this.drawingCanvas.dispatchEvent(mouseEvent);
-        }, { passive: false });
-
-        this.drawingCanvas.addEventListener('touchend', () => {
-            this.stopDrawing();
-        });
-    },
-
-    selectDrawTool(tool) {
-        this.drawTool = tool;
-
-        // Update UI
-        document.querySelectorAll('.draw-tool-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        document.querySelector(`[data-tool="${tool}"]`).classList.add('active');
-
-        // Enable/disable drawing canvas based on tool panel
-        this.updateDrawingCanvasState();
-    },
-
-    updateDrawingCanvasState() {
-        if (!this.drawingCanvas) return;
-
-        // Only enable drawing when the draw panel is active
-        const drawPanel = document.getElementById('panel-draw');
-        if (drawPanel && drawPanel.classList.contains('active')) {
-            this.drawingCanvas.classList.add('drawing-active');
-        } else {
-            this.drawingCanvas.classList.remove('drawing-active');
-        }
-    },
-
-    updateDrawColor(color) {
-        this.drawColor = color;
-        document.getElementById('drawColorPicker').value = color;
-    },
-
-    updateDrawWeight(weight) {
-        this.drawWeight = parseInt(weight);
-        document.getElementById('drawWeightValue').textContent = weight;
-    },
-
-    updateDrawTransparency(opacity) {
-        this.drawOpacity = parseInt(opacity);
-        document.getElementById('drawTransparencyValue').textContent = opacity;
-    },
-
-    getCanvasCoordinates(e) {
-        const rect = this.drawingCanvas.getBoundingClientRect();
-        const scaleX = this.drawingCanvas.width / rect.width;
-        const scaleY = this.drawingCanvas.height / rect.height;
-
-        return {
-            x: (e.clientX - rect.left) * scaleX,
-            y: (e.clientY - rect.top) * scaleY
-        };
-    },
-
-    startDrawing(e) {
-        this.isDrawing = true;
-        const coords = this.getCanvasCoordinates(e);
-        this.lastX = coords.x;
-        this.lastY = coords.y;
-    },
-
-    draw(e) {
-        if (!this.isDrawing) return;
-
-        const coords = this.getCanvasCoordinates(e);
-        const ctx = this.drawingCtx;
-
-        // Set drawing properties based on tool
-        if (this.drawTool === 'eraser') {
-            ctx.globalCompositeOperation = 'destination-out';
-            ctx.lineWidth = this.drawWeight * 2;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.globalAlpha = 1;
-        } else {
-            // Pen tool
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.strokeStyle = this.drawColor;
-            ctx.lineWidth = this.drawWeight;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-
-            // Apply opacity
-            const alpha = this.drawOpacity / 100;
-            ctx.globalAlpha = alpha;
-        }
-
-        // Draw smooth line without overlapping opacity
-        ctx.beginPath();
-        ctx.moveTo(this.lastX, this.lastY);
-        ctx.lineTo(coords.x, coords.y);
-        ctx.stroke();
-
-        this.lastX = coords.x;
-        this.lastY = coords.y;
-    },
-
-    stopDrawing() {
-        if (this.isDrawing) {
-            this.saveState();
-        }
-        this.isDrawing = false;
-    },
-
-    clearDrawing() {
-        if (!this.drawingCtx) return;
-        this.drawingCtx.clearRect(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
-        this.saveState();
     },
 
     // Shapes functionality
@@ -1601,7 +1427,8 @@ const app = {
             top: '50%',
             width: 100,
             height: 100,
-            transform: 'translate(-50%, -50%)'
+            transform: 'translate(-50%, -50%)',
+            zIndex: this.canvasImages.length + this.canvasTexts.length + this.canvasShapes.length
         };
         this.canvasShapes.push(shapeData);
 
@@ -1871,51 +1698,166 @@ const app = {
         this.saveState();
     },
 
-    renderCanvasShapes() {
-        const canvas = document.getElementById('canvas');
+    renderShape(shp, canvas) {
+        const shapeElement = document.createElement('div');
+        shapeElement.id = shp.id;
+        shapeElement.className = 'canvas-shape';
+        if (this.selectedShapeId === shp.id) {
+            shapeElement.className += ' selected';
+        }
+        shapeElement.style.left = shp.left;
+        shapeElement.style.top = shp.top;
+        shapeElement.style.width = shp.width + 'px';
+        shapeElement.style.height = shp.height + 'px';
+        shapeElement.style.transform = shp.transform;
+        shapeElement.style.zIndex = shp.zIndex;
 
-        // Remove all existing shapes
-        canvas.querySelectorAll('.canvas-shape').forEach(el => el.remove());
+        // Create SVG
+        const svg = this.createShapeSVG(shp.type, shp.color);
+        shapeElement.appendChild(svg);
 
-        // Render all shapes
-        this.canvasShapes.forEach(shapeData => {
-            const shapeElement = document.createElement('div');
-            shapeElement.id = shapeData.id;
-            shapeElement.className = 'canvas-shape';
-            shapeElement.style.left = shapeData.left;
-            shapeElement.style.top = shapeData.top;
-            shapeElement.style.width = shapeData.width + 'px';
-            shapeElement.style.height = shapeData.height + 'px';
-            shapeElement.style.transform = shapeData.transform;
+        // Add resize handle (only visible when selected)
+        const resizeHandle = document.createElement('div');
+        resizeHandle.className = 'shape-resize-handle';
+        shapeElement.appendChild(resizeHandle);
 
-            // Create SVG
-            const svg = this.createShapeSVG(shapeData.type, shapeData.color);
-            shapeElement.appendChild(svg);
+        // Add toolbar if selected
+        if (this.selectedShapeId === shp.id) {
+            const toolbar = this.renderShapeToolbar(shp);
+            shapeElement.insertAdjacentHTML('beforeend', toolbar);
+        }
 
-            // Add resize handle
-            const resizeHandle = document.createElement('div');
-            resizeHandle.className = 'shape-resize-handle';
-            shapeElement.appendChild(resizeHandle);
+        // Add to canvas
+        canvas.appendChild(shapeElement);
 
-            // Add to canvas
-            canvas.appendChild(shapeElement);
+        // Add event listeners
+        this.setupShapeInteractions(shapeElement, shp.id);
+    },
 
-            // Add event listeners
-            this.setupShapeInteractions(shapeElement, shapeData.id);
-        });
+    renderShapeToolbar(shp) {
+        return `
+            <div class="image-top-toolbar">
+                <button class="toolbar-btn-small" onclick="app.copyShape('${shp.id}')" title="Copy">
+                    <svg viewBox="0 0 24 24" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                </button>
+                <button class="toolbar-btn-small" onclick="app.deleteShape('${shp.id}')" title="Delete">
+                    <svg viewBox="0 0 24 24" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </button>
+                <button class="toolbar-btn-small" onclick="app.toggleShapeDropdown('${shp.id}', event)" title="More options" style="position: relative;">
+                    <svg viewBox="0 0 24 24" stroke-width="2" fill="white">
+                        <circle cx="5" cy="12" r="1"></circle>
+                        <circle cx="12" cy="12" r="1"></circle>
+                        <circle cx="19" cy="12" r="1"></circle>
+                    </svg>
+                    <div class="dropdown-menu" id="dropdown-shape-${shp.id}">
+                        <div class="dropdown-item" onmousedown="event.stopPropagation(); event.preventDefault(); app.moveShapeToFront('${shp.id}'); app.closeAllDropdowns();">
+                            Front
+                        </div>
+                        <div class="dropdown-item" onmousedown="event.stopPropagation(); event.preventDefault(); app.moveShapeToBack('${shp.id}'); app.closeAllDropdowns();">
+                            Back
+                        </div>
+                    </div>
+                </button>
+            </div>
+        `;
+    },
+
+    toggleShapeDropdown(shapeId, event) {
+        event.stopPropagation();
+        const dropdown = document.getElementById(`dropdown-shape-${shapeId}`);
+        if (dropdown) {
+            dropdown.classList.toggle('show');
+        }
+    },
+
+    copyShape(shapeId) {
+        const shape = this.canvasShapes.find(s => s.id === shapeId);
+        if (!shape) return;
+
+        const newShape = {
+            ...JSON.parse(JSON.stringify(shape)),
+            id: 'shape-' + Date.now(),
+            left: (parseInt(shape.left) + 20) + 'px',
+            top: (parseInt(shape.top) + 20) + 'px',
+            zIndex: Math.max(...this.canvasImages.map(i => i.zIndex), ...this.canvasTexts.map(t => t.zIndex), ...this.canvasShapes.map(s => s.zIndex)) + 1
+        };
+
+        this.canvasShapes.push(newShape);
+        this.selectedShapeId = newShape.id;
+        this.renderCanvasImages();
+        this.saveState();
+    },
+
+    moveShapeToFront(shapeId) {
+        const shape = this.canvasShapes.find(s => s.id === shapeId);
+        if (!shape) return;
+
+        // Get all current z-indexes from all elements
+        const allZIndexes = [
+            ...this.canvasImages.map(img => img.zIndex),
+            ...this.canvasTexts.map(txt => txt.zIndex),
+            ...this.canvasShapes.map(shp => shp.zIndex)
+        ];
+
+        // Find the highest z-index
+        const maxZ = Math.max(...allZIndexes);
+
+        // Set this shape to be higher than the highest
+        shape.zIndex = maxZ + 10;
+
+        // Re-render everything
+        this.renderCanvasImages();
+        this.saveState();
+    },
+
+    moveShapeToBack(shapeId) {
+        const shape = this.canvasShapes.find(s => s.id === shapeId);
+        if (!shape) return;
+
+        // Get all current z-indexes from all elements
+        const allZIndexes = [
+            ...this.canvasImages.map(img => img.zIndex),
+            ...this.canvasTexts.map(txt => txt.zIndex),
+            ...this.canvasShapes.map(shp => shp.zIndex)
+        ];
+
+        // Find the minimum z-index
+        const minZ = Math.min(...allZIndexes);
+
+        // If minimum is already 1 or less, we need to push everything else up
+        if (minZ <= 1) {
+            // Push all OTHER elements up by 10
+            this.canvasImages.forEach(img => img.zIndex = img.zIndex + 10);
+            this.canvasTexts.forEach(txt => txt.zIndex = txt.zIndex + 10);
+            this.canvasShapes.forEach(shp => {
+                if (shp.id !== shapeId) {
+                    shp.zIndex = shp.zIndex + 10;
+                }
+            });
+            // Set this shape to 1 (the back)
+            shape.zIndex = 1;
+        } else {
+            // There's room below, just set to minZ - 10
+            shape.zIndex = minZ - 10;
+        }
+
+        this.renderCanvasImages();
+        this.saveState();
     },
 
     // Save current state to history
     saveState() {
-        // Get current canvas state including drawing
-        const drawingDataURL = this.drawingCanvas ? this.drawingCanvas.toDataURL() : null;
-
         const state = {
             canvasImages: JSON.parse(JSON.stringify(this.canvasImages)),
             canvasTexts: JSON.parse(JSON.stringify(this.canvasTexts)),
             canvasShapes: JSON.parse(JSON.stringify(this.canvasShapes)),
-            numSlides: this.numSlides,
-            drawingData: drawingDataURL
+            numSlides: this.numSlides
         };
 
         // Remove any states after current index (for when user undoes then makes new change)
@@ -1940,21 +1882,6 @@ const app = {
         this.canvasTexts = JSON.parse(JSON.stringify(state.canvasTexts));
         this.canvasShapes = JSON.parse(JSON.stringify(state.canvasShapes || []));
         this.numSlides = state.numSlides;
-
-        // Restore drawing canvas
-        if (state.drawingData && this.drawingCanvas) {
-            const img = new Image();
-            img.onload = () => {
-                this.drawingCtx.clearRect(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
-                this.drawingCtx.drawImage(img, 0, 0);
-            };
-            img.src = state.drawingData;
-        } else if (this.drawingCanvas) {
-            this.drawingCtx.clearRect(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
-        }
-
-        // Restore shapes
-        this.renderCanvasShapes();
 
         this.renderCanvasImages();
         this.updateHistoryButtons();

@@ -1662,66 +1662,12 @@
             vertical-align: middle;
         }
 
-        /* Drawing Tools Styles */
-        .draw-tools-container {
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .draw-tools-main-row {
-            display: flex;
-            gap: 20px;
-            align-items: flex-start;
-            flex-wrap: wrap;
-        }
-
-        .draw-tool-section {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
+        /* Shared Styles for Tools */
         .draw-tool-label {
             font-size: 14px;
             font-weight: 600;
             color: #1a1a1a;
             font-family: 'Poppins', sans-serif;
-        }
-
-        .draw-tools-buttons {
-            display: flex;
-            gap: 8px;
-        }
-
-        .draw-tool-btn {
-            width: 48px;
-            height: 48px;
-            background: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-            color: #666;
-        }
-
-        .draw-tool-btn:hover {
-            border-color: #1a1a1a;
-            background: #f5f5f5;
-        }
-
-        .draw-tool-btn.active {
-            background: #1a1a1a;
-            color: white;
-            border-color: #1a1a1a;
-        }
-
-        .draw-tool-btn.active svg {
-            stroke: white;
         }
 
         .draw-color-input {
@@ -1740,107 +1686,6 @@
         .draw-color-input::-webkit-color-swatch {
             border: none;
             border-radius: 6px;
-        }
-
-        .draw-tools-sliders-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .draw-slider-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .draw-slider-container {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .draw-slider {
-            flex: 1;
-            height: 6px;
-            border-radius: 3px;
-            background: #e0e0e0;
-            outline: none;
-            -webkit-appearance: none;
-        }
-
-        .draw-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #1a1a1a;
-            cursor: pointer;
-            border: 2px solid white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .draw-slider::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #1a1a1a;
-            cursor: pointer;
-            border: 2px solid white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .draw-slider-value {
-            min-width: 45px;
-            padding: 8px 12px;
-            background: #f5f5f5;
-            border: 2px solid #e0e0e0;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 600;
-            text-align: center;
-            font-family: 'Poppins', sans-serif;
-        }
-
-        .draw-tools-action-row {
-            display: flex;
-        }
-
-        .btn-draw-action {
-            padding: 12px 20px;
-            background: white;
-            border: 2px solid #1a1a1a;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            font-family: 'Poppins', sans-serif;
-            color: #1a1a1a;
-            transition: all 0.2s;
-            width: 100%;
-        }
-
-        .btn-draw-action:hover {
-            background: #1a1a1a;
-            color: white;
-        }
-
-        .btn-draw-action:active {
-            transform: scale(0.98);
-        }
-
-        /* Mobile responsive for drawing tools */
-        @media (max-width: 768px) {
-            .draw-tools-sliders-row {
-                grid-template-columns: 1fr;
-                gap: 15px;
-            }
-
-            .draw-tools-main-row {
-                flex-direction: column;
-                gap: 15px;
-            }
         }
 
         /* Shapes Tool Styles */
@@ -1935,19 +1780,6 @@
                 flex-direction: column;
                 gap: 15px;
             }
-        }
-
-        /* Drawing Canvas Overlay */
-        #drawingCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            pointer-events: none;
-            z-index: 100;
-        }
-
-        #drawingCanvas.drawing-active {
-            pointer-events: auto;
         }
     </style>
 </head>
@@ -2136,9 +1968,7 @@
             <div class="canvas-workspace">
                 <div class="canvas-container">
                     <div class="canvas-scroll">
-                        <div class="canvas" id="canvas">
-                            <canvas id="drawingCanvas"></canvas>
-                        </div>
+                        <div class="canvas" id="canvas"></div>
                         <button class="btn-add-slide" onclick="app.addSlide()" title="Add Slide">+</button>
                     </div>
                 </div>
@@ -2159,15 +1989,6 @@
                                 <polyline points="4 7 4 4 20 4 20 7"></polyline>
                                 <line x1="9" y1="20" x2="15" y2="20"></line>
                                 <line x1="12" y1="4" x2="12" y2="20"></line>
-                            </svg>
-                        </button>
-
-                        <button class="toolbar-btn" data-tool="draw" onclick="app.openToolPanel('draw')" title="Draw">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
-                                <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
-                                <path d="M2 2l7.586 7.586"></path>
-                                <circle cx="11" cy="11" r="2"></circle>
                             </svg>
                         </button>
 
@@ -2202,62 +2023,6 @@
                             <p style="color: #666; font-size: 13px; margin-top: 15px; text-align: center;">
                                 Click to add text • Drag to move • Click to edit
                             </p>
-                        </div>
-                    </div>
-
-                    <div class="tool-panel" id="panel-draw">
-                        <div class="panel-header">Drawing Tools</div>
-                        <div class="draw-tools-container">
-                            <!-- Tool and Color Row -->
-                            <div class="draw-tools-main-row">
-                                <div class="draw-tool-section">
-                                    <div class="draw-tool-label">Tool</div>
-                                    <div class="draw-tools-buttons">
-                                        <button class="draw-tool-btn active" data-tool="pen" onclick="app.selectDrawTool('pen')" title="Pencil">
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                                <path d="M20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"/>
-                                            </svg>
-                                        </button>
-                                        <button class="draw-tool-btn" data-tool="eraser" onclick="app.selectDrawTool('eraser')" title="Eraser">
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M20 20H7L3 16L13 6L21 14L17 18Z"></path>
-                                                <line x1="13" y1="6" x2="17" y2="10"></line>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div class="draw-tool-section">
-                                    <div class="draw-tool-label">Color</div>
-                                    <input type="color" id="drawColorPicker" class="draw-color-input" value="#1a1a1a" oninput="app.updateDrawColor(this.value)">
-                                </div>
-                            </div>
-
-                            <!-- Sliders Row -->
-                            <div class="draw-tools-sliders-row">
-                                <div class="draw-slider-group">
-                                    <div class="draw-tool-label">Weight</div>
-                                    <div class="draw-slider-container">
-                                        <input type="range" id="drawWeight" class="draw-slider" min="1" max="50" value="12" oninput="app.updateDrawWeight(this.value)">
-                                        <div class="draw-slider-value" id="drawWeightValue">12</div>
-                                    </div>
-                                </div>
-
-                                <div class="draw-slider-group">
-                                    <div class="draw-tool-label">Opacity</div>
-                                    <div class="draw-slider-container">
-                                        <input type="range" id="drawTransparency" class="draw-slider" min="0" max="100" value="100" oninput="app.updateDrawTransparency(this.value)">
-                                        <div class="draw-slider-value" id="drawTransparencyValue">100</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Action Button -->
-                            <div class="draw-tools-action-row">
-                                <button class="btn-draw-action" onclick="app.clearDrawing()">
-                                    Clear Drawing
-                                </button>
-                            </div>
                         </div>
                     </div>
 
