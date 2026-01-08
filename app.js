@@ -30,6 +30,14 @@ const app = {
     lastX: 0,
     lastY: 0,
 
+    // Shapes tool state
+    canvasShapes: [],
+    selectedShape: null, // current shape type to add
+    selectedShapeId: null, // selected shape on canvas
+    shapeColor: '#1a1a1a',
+    shapeDragData: null,
+    shapeResizeData: null,
+
     // Undo/Redo history
     history: [],
     historyIndex: -1,
@@ -928,9 +936,26 @@ const app = {
                 imageStartY: image.y
             };
             e.preventDefault();
+        } else if (e.target.closest('.canvas-shape')) {
+            // Clicking on a shape - handled by shape's own event listener
+            // Don't deselect images/texts here
+            return;
         } else {
+            // Check if shapes panel is active and a shape is selected
+            const shapesPanel = document.getElementById('panel-shapes');
+            if (shapesPanel && shapesPanel.classList.contains('active') && this.selectedShape) {
+                // Add shape to canvas at click position
+                this.addShapeToCanvas();
+                return;
+            }
+
             this.selectedImageId = null;
             this.selectedTextId = null;
+            this.selectedShapeId = null;
+            // Deselect all shapes
+            document.querySelectorAll('.canvas-shape').forEach(shape => {
+                shape.classList.remove('selected');
+            });
             // Exit crop mode and clear crop data
             if (this.cropMode) {
                 this.cropMode = false;
@@ -1505,6 +1530,381 @@ const app = {
         this.saveState();
     },
 
+    // Shapes functionality
+    selectShape(shape) {
+        this.selectedShape = shape;
+
+        // Update UI
+        document.querySelectorAll('.shape-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-shape="${shape}"]`).classList.add('active');
+    },
+
+    updateShapeColor(color) {
+        this.shapeColor = color;
+        document.getElementById('shapeColorPicker').value = color;
+
+        // Update selected shape color if any
+        if (this.selectedShapeId) {
+            const shapeElement = document.getElementById(this.selectedShapeId);
+            if (shapeElement) {
+                const svg = shapeElement.querySelector('svg');
+                if (svg) {
+                    svg.style.color = color;
+                }
+                // Update in data
+                const shapeData = this.canvasShapes.find(s => s.id === this.selectedShapeId);
+                if (shapeData) {
+                    shapeData.color = color;
+                    this.saveState();
+                }
+            }
+        }
+    },
+
+    addShapeToCanvas() {
+        if (!this.selectedShape) return;
+
+        const shapeId = 'shape-' + Date.now();
+        const canvas = document.getElementById('canvas');
+        const canvasRect = canvas.getBoundingClientRect();
+
+        // Create shape element
+        const shapeElement = document.createElement('div');
+        shapeElement.id = shapeId;
+        shapeElement.className = 'canvas-shape';
+        shapeElement.style.left = '50%';
+        shapeElement.style.top = '50%';
+        shapeElement.style.transform = 'translate(-50%, -50%)';
+        shapeElement.style.width = '100px';
+        shapeElement.style.height = '100px';
+
+        // Create SVG
+        const svg = this.createShapeSVG(this.selectedShape, this.shapeColor);
+        shapeElement.appendChild(svg);
+
+        // Add resize handle
+        const resizeHandle = document.createElement('div');
+        resizeHandle.className = 'shape-resize-handle';
+        shapeElement.appendChild(resizeHandle);
+
+        // Add to canvas
+        canvas.appendChild(shapeElement);
+
+        // Store shape data
+        const shapeData = {
+            id: shapeId,
+            type: this.selectedShape,
+            color: this.shapeColor,
+            left: '50%',
+            top: '50%',
+            width: 100,
+            height: 100,
+            transform: 'translate(-50%, -50%)'
+        };
+        this.canvasShapes.push(shapeData);
+
+        // Add event listeners
+        this.setupShapeInteractions(shapeElement, shapeId);
+
+        this.saveState();
+    },
+
+    createShapeSVG(shapeType, color) {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('width', '100%');
+        svg.setAttribute('height', '100%');
+        svg.setAttribute('viewBox', '0 0 24 24');
+        svg.style.color = color;
+        svg.style.pointerEvents = 'none';
+
+        let path;
+        switch(shapeType) {
+            case 'circle':
+                path = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                path.setAttribute('cx', '12');
+                path.setAttribute('cy', '12');
+                path.setAttribute('r', '10');
+                path.setAttribute('fill', 'currentColor');
+                break;
+            case 'square':
+                path = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                path.setAttribute('x', '2');
+                path.setAttribute('y', '2');
+                path.setAttribute('width', '20');
+                path.setAttribute('height', '20');
+                path.setAttribute('fill', 'currentColor');
+                break;
+            case 'rectangle':
+                path = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                path.setAttribute('x', '2');
+                path.setAttribute('y', '6');
+                path.setAttribute('width', '20');
+                path.setAttribute('height', '12');
+                path.setAttribute('fill', 'currentColor');
+                break;
+            case 'triangle':
+                path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', 'M12 2 L22 22 L2 22 Z');
+                path.setAttribute('fill', 'currentColor');
+                break;
+            case 'star':
+                path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', 'M12 2 L14.5 9.5 L22 10 L16.5 15 L18 22 L12 18 L6 22 L7.5 15 L2 10 L9.5 9.5 Z');
+                path.setAttribute('fill', 'currentColor');
+                break;
+            case 'heart':
+                path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z');
+                path.setAttribute('fill', 'currentColor');
+                break;
+        }
+
+        svg.appendChild(path);
+        return svg;
+    },
+
+    setupShapeInteractions(shapeElement, shapeId) {
+        const resizeHandle = shapeElement.querySelector('.shape-resize-handle');
+
+        // Click to select
+        shapeElement.addEventListener('mousedown', (e) => {
+            if (e.target === resizeHandle) return;
+            this.selectShapeElement(shapeId);
+            this.startShapeDrag(e, shapeId);
+        });
+
+        shapeElement.addEventListener('touchstart', (e) => {
+            if (e.target === resizeHandle) return;
+            e.preventDefault();
+            this.selectShapeElement(shapeId);
+            this.startShapeDrag(e.touches[0], shapeId);
+        }, { passive: false });
+
+        // Resize handle
+        resizeHandle.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            this.startShapeResize(e, shapeId);
+        });
+
+        resizeHandle.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.startShapeResize(e.touches[0], shapeId);
+        }, { passive: false });
+
+        // Delete on backspace/delete
+        document.addEventListener('keydown', (e) => {
+            if ((e.key === 'Backspace' || e.key === 'Delete') && this.selectedShapeId === shapeId) {
+                this.deleteShape(shapeId);
+            }
+        });
+    },
+
+    selectShapeElement(shapeId) {
+        // Deselect images and texts
+        this.selectedImageId = null;
+        this.selectedTextId = null;
+
+        // Deselect all shapes
+        document.querySelectorAll('.canvas-shape').forEach(shape => {
+            shape.classList.remove('selected');
+        });
+
+        // Select this shape
+        const shapeElement = document.getElementById(shapeId);
+        if (shapeElement) {
+            shapeElement.classList.add('selected');
+            this.selectedShapeId = shapeId;
+
+            // Update color picker to match shape color
+            const shapeData = this.canvasShapes.find(s => s.id === shapeId);
+            if (shapeData) {
+                document.getElementById('shapeColorPicker').value = shapeData.color;
+            }
+        }
+
+        // Re-render to update selected state of images/texts
+        this.renderCanvasImages();
+    },
+
+    startShapeDrag(e, shapeId) {
+        const shapeElement = document.getElementById(shapeId);
+        if (!shapeElement) return;
+
+        const rect = shapeElement.getBoundingClientRect();
+        const canvas = document.getElementById('canvas');
+        const canvasRect = canvas.getBoundingClientRect();
+
+        this.shapeDragData = {
+            shapeId: shapeId,
+            startX: e.clientX,
+            startY: e.clientY,
+            initialLeft: rect.left - canvasRect.left,
+            initialTop: rect.top - canvasRect.top
+        };
+
+        const moveHandler = (e) => this.handleShapeDragMove(e);
+        const upHandler = () => this.stopShapeDrag(moveHandler, upHandler);
+
+        window.addEventListener('mousemove', moveHandler);
+        window.addEventListener('mouseup', upHandler);
+        window.addEventListener('touchmove', moveHandler);
+        window.addEventListener('touchend', upHandler);
+    },
+
+    handleShapeDragMove(e) {
+        if (!this.shapeDragData) return;
+
+        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+        const deltaX = clientX - this.shapeDragData.startX;
+        const deltaY = clientY - this.shapeDragData.startY;
+
+        const shapeElement = document.getElementById(this.shapeDragData.shapeId);
+        if (!shapeElement) return;
+
+        const newLeft = this.shapeDragData.initialLeft + deltaX;
+        const newTop = this.shapeDragData.initialTop + deltaY;
+
+        shapeElement.style.left = newLeft + 'px';
+        shapeElement.style.top = newTop + 'px';
+        shapeElement.style.transform = 'none';
+    },
+
+    stopShapeDrag(moveHandler, upHandler) {
+        if (this.shapeDragData) {
+            const shapeElement = document.getElementById(this.shapeDragData.shapeId);
+            if (shapeElement) {
+                // Update shape data
+                const shapeData = this.canvasShapes.find(s => s.id === this.shapeDragData.shapeId);
+                if (shapeData) {
+                    shapeData.left = shapeElement.style.left;
+                    shapeData.top = shapeElement.style.top;
+                    shapeData.transform = 'none';
+                }
+                this.saveState();
+            }
+        }
+
+        this.shapeDragData = null;
+        window.removeEventListener('mousemove', moveHandler);
+        window.removeEventListener('mouseup', upHandler);
+        window.removeEventListener('touchmove', moveHandler);
+        window.removeEventListener('touchend', upHandler);
+    },
+
+    startShapeResize(e, shapeId) {
+        const shapeElement = document.getElementById(shapeId);
+        if (!shapeElement) return;
+
+        const rect = shapeElement.getBoundingClientRect();
+
+        this.shapeResizeData = {
+            shapeId: shapeId,
+            startX: e.clientX,
+            startY: e.clientY,
+            initialWidth: rect.width,
+            initialHeight: rect.height
+        };
+
+        const moveHandler = (e) => this.handleShapeResizeMove(e);
+        const upHandler = () => this.stopShapeResize(moveHandler, upHandler);
+
+        window.addEventListener('mousemove', moveHandler);
+        window.addEventListener('mouseup', upHandler);
+        window.addEventListener('touchmove', moveHandler);
+        window.addEventListener('touchend', upHandler);
+    },
+
+    handleShapeResizeMove(e) {
+        if (!this.shapeResizeData) return;
+
+        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+        const deltaX = clientX - this.shapeResizeData.startX;
+        const deltaY = clientY - this.shapeResizeData.startY;
+
+        const shapeElement = document.getElementById(this.shapeResizeData.shapeId);
+        if (!shapeElement) return;
+
+        const newWidth = Math.max(50, this.shapeResizeData.initialWidth + deltaX);
+        const newHeight = Math.max(50, this.shapeResizeData.initialHeight + deltaY);
+
+        shapeElement.style.width = newWidth + 'px';
+        shapeElement.style.height = newHeight + 'px';
+    },
+
+    stopShapeResize(moveHandler, upHandler) {
+        if (this.shapeResizeData) {
+            const shapeElement = document.getElementById(this.shapeResizeData.shapeId);
+            if (shapeElement) {
+                // Update shape data
+                const shapeData = this.canvasShapes.find(s => s.id === this.shapeResizeData.shapeId);
+                if (shapeData) {
+                    shapeData.width = parseInt(shapeElement.style.width);
+                    shapeData.height = parseInt(shapeElement.style.height);
+                }
+                this.saveState();
+            }
+        }
+
+        this.shapeResizeData = null;
+        window.removeEventListener('mousemove', moveHandler);
+        window.removeEventListener('mouseup', upHandler);
+        window.removeEventListener('touchmove', moveHandler);
+        window.removeEventListener('touchend', upHandler);
+    },
+
+    deleteShape(shapeId) {
+        const shapeElement = document.getElementById(shapeId);
+        if (shapeElement) {
+            shapeElement.remove();
+        }
+
+        // Remove from data
+        this.canvasShapes = this.canvasShapes.filter(s => s.id !== shapeId);
+        this.selectedShapeId = null;
+        this.saveState();
+    },
+
+    renderCanvasShapes() {
+        const canvas = document.getElementById('canvas');
+
+        // Remove all existing shapes
+        canvas.querySelectorAll('.canvas-shape').forEach(el => el.remove());
+
+        // Render all shapes
+        this.canvasShapes.forEach(shapeData => {
+            const shapeElement = document.createElement('div');
+            shapeElement.id = shapeData.id;
+            shapeElement.className = 'canvas-shape';
+            shapeElement.style.left = shapeData.left;
+            shapeElement.style.top = shapeData.top;
+            shapeElement.style.width = shapeData.width + 'px';
+            shapeElement.style.height = shapeData.height + 'px';
+            shapeElement.style.transform = shapeData.transform;
+
+            // Create SVG
+            const svg = this.createShapeSVG(shapeData.type, shapeData.color);
+            shapeElement.appendChild(svg);
+
+            // Add resize handle
+            const resizeHandle = document.createElement('div');
+            resizeHandle.className = 'shape-resize-handle';
+            shapeElement.appendChild(resizeHandle);
+
+            // Add to canvas
+            canvas.appendChild(shapeElement);
+
+            // Add event listeners
+            this.setupShapeInteractions(shapeElement, shapeData.id);
+        });
+    },
+
     // Save current state to history
     saveState() {
         // Get current canvas state including drawing
@@ -1513,6 +1913,7 @@ const app = {
         const state = {
             canvasImages: JSON.parse(JSON.stringify(this.canvasImages)),
             canvasTexts: JSON.parse(JSON.stringify(this.canvasTexts)),
+            canvasShapes: JSON.parse(JSON.stringify(this.canvasShapes)),
             numSlides: this.numSlides,
             drawingData: drawingDataURL
         };
@@ -1537,6 +1938,7 @@ const app = {
     restoreState(state) {
         this.canvasImages = JSON.parse(JSON.stringify(state.canvasImages));
         this.canvasTexts = JSON.parse(JSON.stringify(state.canvasTexts));
+        this.canvasShapes = JSON.parse(JSON.stringify(state.canvasShapes || []));
         this.numSlides = state.numSlides;
 
         // Restore drawing canvas
@@ -1550,6 +1952,9 @@ const app = {
         } else if (this.drawingCanvas) {
             this.drawingCtx.clearRect(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
         }
+
+        // Restore shapes
+        this.renderCanvasShapes();
 
         this.renderCanvasImages();
         this.updateHistoryButtons();
