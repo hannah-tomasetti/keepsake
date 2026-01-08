@@ -24,6 +24,10 @@ class AuthManager {
         if (session) {
             this.currentUser = session.user;
             this.onAuthStateChanged(this.currentUser);
+        } else {
+            // No session - show sign in button
+            this.currentUser = null;
+            this.onAuthStateChanged(null);
         }
 
         // Listen for auth state changes
