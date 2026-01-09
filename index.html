@@ -1776,12 +1776,41 @@
 
         @media (max-width: 768px) {
             .shapes-grid {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(3, 1fr);
             }
 
             .shapes-main-row {
                 flex-direction: column;
                 gap: 15px;
+            }
+
+            /* Mobile canvas adjustments */
+            .canvas-container {
+                padding: 10px;
+            }
+
+            .canvas {
+                transform-origin: top left;
+                transform: scale(0.85);
+                margin-bottom: 20px;
+            }
+
+            .canvas-workspace {
+                padding: 10px;
+            }
+
+            .unified-toolbar {
+                font-size: 14px;
+            }
+
+            .toolbar-btn {
+                padding: 10px;
+                height: 50px;
+            }
+
+            .toolbar-btn svg {
+                width: 20px;
+                height: 20px;
             }
         }
 
@@ -2347,7 +2376,7 @@
                                 Add Text to Canvas
                             </button>
                             <p style="color: #666; font-size: 13px; margin-top: 15px; text-align: center;">
-                                Click to add text • Drag to move • Click to edit
+                                Click to add text • Drag to move
                             </p>
                         </div>
                     </div>
@@ -2401,7 +2430,7 @@
 
                             <!-- Helper Text -->
                             <p style="color: #666; font-size: 13px; margin-top: 15px; text-align: center;">
-                                Select a shape above • Click on canvas to add • Drag to resize
+                                Select a shape above • Click on canvas to add
                             </p>
                         </div>
                     </div>

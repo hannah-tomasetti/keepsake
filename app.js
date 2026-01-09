@@ -1351,9 +1351,72 @@ const app = {
         }
     },
 
-    exportCarousel() {
-        const numSlides = Math.max(1, Math.ceil(this.imageLibrary.length / 3));
-        alert(`🎉 Ready to export ${numSlides} slide${numSlides > 1 ? 's' : ''}!\n\nIn the full version, this will download your carousel as high-resolution images (1080px) ready to post on Instagram or TikTok.`);
+    async exportCarousel() {
+        // Get the canvas element
+        const canvas = document.getElementById('canvas');
+        if (!canvas) {
+            alert('No canvas found to export');
+            return;
+        }
+
+        try {
+            // Import html2canvas dynamically
+            const html2canvas = await import('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/+esm');
+
+            // Show loading message
+            const originalText = event.target.textContent;
+            event.target.textContent = 'Exporting...';
+            event.target.disabled = true;
+
+            // Capture the canvas as an image
+            const canvasImage = await html2canvas.default(canvas, {
+                backgroundColor: '#ffffff',
+                scale: 2, // Higher quality
+                useCORS: true,
+                allowTaint: true
+            });
+
+            // Convert to blob
+            canvasImage.toBlob((blob) => {
+                // Create download link
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                const timestamp = new Date().toISOString().slice(0, 10);
+                link.download = `keepsake-${timestamp}.png`;
+                link.href = url;
+
+                // Trigger download
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                // Clean up
+                URL.revokeObjectURL(url);
+
+                // Reset button
+                event.target.textContent = originalText;
+                event.target.disabled = false;
+
+                // Show success message
+                if (window.authManager) {
+                    window.authManager.showSuccess('Image saved! Check your downloads folder.');
+                } else {
+                    alert('Image exported successfully! Check your downloads folder.');
+                }
+            }, 'image/png');
+
+        } catch (error) {
+            console.error('Export error:', error);
+
+            // Fallback: Show instructions
+            alert('To save your keepsake:\n\n1. Take a screenshot of the canvas\n2. On mobile: Press and hold the image, then tap "Save Image"\n3. On desktop: Right-click the canvas and select "Save image as..."');
+
+            // Reset button if it was changed
+            if (event && event.target) {
+                event.target.textContent = 'Export';
+                event.target.disabled = false;
+            }
+        }
     },
 
     // Shapes functionality
